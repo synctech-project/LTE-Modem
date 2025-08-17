@@ -1,0 +1,44 @@
+<%+header%>
+<h2>Synctech - LTE modem</h2>
+<table class="table">
+    <tr>
+        <td>Operator</td>
+        <td id="op">--</td>
+    </tr>
+    <tr>
+        <td>Signal</td>
+        <td>
+            <span id="sig">--</span>
+            <span style="font-size:2em;" id="bars"></span>
+        </td>
+    </tr>
+    <tr>
+        <td>Internet status</td>
+        <td id="conn">--</td>
+    </tr>
+</table>
+<script>
+function updateStatus() {
+    fetch('<%=luci.dispatcher.build_url("admin", "status", "synctechmodem", "json")%>')
+      .then(resp => resp.json())
+      .then(data => {
+        if (data.Operator) document.getElementById('op').innerText = data.Operator;
+        if (data.Signal) document.getElementById('sig').innerText = data.Signal;
+        if (data.Connection) document.getElementById('conn').innerText = data.Connection;
+
+        if (data.SignalBar !== undefined && data.SignalBar !== null && data.SignalBar !== "") {
+            var signalbar = parseInt(data.SignalBar) || 0;
+            var bars = "";
+            for(let i=1; i<=5; i++){
+                bars += (i<=signalbar ? "&#9632;" : "&#9633;");
+            }
+            document.getElementById('bars').innerHTML = bars;
+        }
+      }).catch(err=>{
+      });
+}
+
+setInterval(updateStatus, 10000);
+window.onload = updateStatus;
+</script>
+<%+footer%>
