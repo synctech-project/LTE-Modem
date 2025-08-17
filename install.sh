@@ -1,176 +1,88 @@
 #!/bin/sh
-# نصب اتوماتیک - سازگار با POSIX sh و busybox ash
-
 set -eu
 
-REPO_RAW_ROOT="https://raw.githubusercontent.com/synctech-project/LTE-Modem/main"
-REPO_GIT="https://github.com/synctech-project/LTE-Modem.git"
-TMP_DIR="/tmp/LTE-Modem"
-PKG_SUBPATHS="package package/ packages pkg file/package release/package"
+REPO_RAW_ROOT="https://raw.githubusercontent.com/synctech-project/LTE-Modem/main/package"
 
-echof() {
-  printf "%s\n" "$1"
-}
+echof() { printf "%s\n" "$1"; }
 
-echof ">>> شروع نصب خودکار (نسخه مقاوم)"
-rm -rf "$TMP_DIR" 2>/dev/null || true
+IPK_LIST="
+0-kmod-nls-base_5.15.167-1_mipsel_24kc.ipk
+1-0-kmod-usb-core_5.15.167-1_mipsel_24kc.ipk
+1-1kmod-usb-ehci_5.15.167-1_mipsel_24kc.ipk
+1-liblua5.1.5_5.1.5-11_mipsel_24kc.ipk
+10-luci-lua-runtime_git-25.176.69269-6e21c0e_mipsel_24kc.ipk
+11-luci-compat_git-25.176.69269-6e21c0e_all.ipk
+2-kmod-usb2_5.15.167-1_mipsel_24kc.ipk
+2-lua_5.1.5-11_mipsel_24kc.ipk
+3-kmod-mii_5.15.167-1_mipsel_24kc.ipk
+3-ucode-mod-lua_1_mipsel_24kc.ipk
+4-kmod-usb-net_5.15.167-1_mipsel_24kc.ipk
+4-libuclitttp-lua_2023-03-15-9b5b683f-1_mipsel_24kc.ipk
+5-kmod-usb-net-cdc-ether_5.15.167-1_mipsel_24kc.ipk
+5-libubus-lua_2023-06-05-f787c97b-1_mipsel_24kc.ipk
+6-kmod-usb-serial_5.15.167-1_mipsel_24kc.ipk
+6-luci-lib-jsonc_git-25.176.69269-6e21c0e_mipsel_24kc.ipk
+7-kmod-usb-serial-wwan_5.15.167-1_mipsel_24kc.ipk
+7-luci-lib-ip_git-25.176.69269-6e21c0e_mipsel_24kc.ipk
+8-kmod-usb-serial-option_5.15.167-1_mipsel_24kc.ipk
+8-luci-lib-nixio_git-25.176.69269-6e21c0e_mipsel_24kc.ipk
+9-luci-lib-base_git-25.176.69269-6e21c0e_all.ipk
+9-picocom_3.1-5_mipsel_24kc.ipk
+"
 
-# تلاش با git clone
-echof ">>> تلاش برای کلون مخزن با git..."
-if command -v git >/dev/null 2>&1; then
-  if git clone --depth 1 "$REPO_GIT" "$TMP_DIR" >/dev/null 2>&1; then
-    echof ">>> کلون موفق."
-  else
-    echof "[هشدار] کلون مخزن با git شکست خورد؛ دانلود مستقیم فایل install.sh..."
-    mkdir -p "$TMP_DIR"
-    if command -v wget >/dev/null 2>&1; then
-      wget -qO "$TMP_DIR/install.sh" "$REPO_RAW_ROOT/install.sh" || true
-    elif command -v curl >/dev/null 2>&1; then
-      curl -fsSL "$REPO_RAW_ROOT/install.sh" -o "$TMP_DIR/install.sh" || true
-    fi
-  fi
-else
-  echof "[هشدار] git نصب نیست؛ دانلود مستقیم..."
-  mkdir -p "$TMP_DIR"
+echof ">>> شروع دانلود و نصب پکیج‌ها:"
+for IPK in $IPK_LIST; do
+  SRC="/tmp/$IPK"
+  echof "-> دانلود $IPK ..."
   if command -v wget >/dev/null 2>&1; then
-    wget -qO "$TMP_DIR/install.sh" "$REPO_RAW_ROOT/install.sh" || true
+    wget -qO "$SRC" "$REPO_RAW_ROOT/$IPK"
   elif command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$REPO_RAW_ROOT/install.sh" -o "$TMP_DIR/install.sh" || true
-  fi
-fi
-
-# پیدا کردن پوشه package در TMP_DIR
-PKG_DIR=""
-for p in $PKG_SUBPATHS; do
-  if [ -d "$TMP_DIR/$p" ]; then
-    PKG_DIR="$TMP_DIR/$p"
-    break
-  fi
-done
-
-# اگر پوشه پیدا نشد، بررسی فایل‌های ipk در ریشه
-if [ -z "$PKG_DIR" ]; then
-  echof ">>> package پیدا نشد، بررسی .ipk در ریشه..."
-  if ls "$TMP_DIR"/*.ipk >/dev/null 2>&1; then
-    PKG_DIR="$TMP_DIR"
+    curl -fsSL "$REPO_RAW_ROOT/$IPK" -o "$SRC"
   else
-    echof "[هشدار] .ipk یافت نشد. تلاش برای دانلود لیست از GitHub..."
-    if command -v wget >/dev/null 2>&1; then
-      wget -qO- "$REPO_RAW_ROOT/package/list.txt" > "$TMP_DIR/_pkg_list.txt" 2>/dev/null || true
-    elif command -v curl >/dev/null 2>&1; then
-      curl -fsSL "$REPO_RAW_ROOT/package/list.txt" -o "$TMP_DIR/_pkg_list.txt" 2>/dev/null || true
-    fi
-    if [ -s "$TMP_DIR/_pkg_list.txt" ]; then
-      echof ">>> لیست package دریافت شد."
-      PKG_DIR="$TMP_DIR"
-    else
-      echof "[خطا] منبع فایل‌های .ipk یافت نشد. مطمئن شو .ipk ها یا لیستِ نام آنها وجود دارد."
-      exit 1
-    fi
+    echof "[خطا] neither wget nor curl found."
+    exit 1
   fi
-fi
-
-echof ">>> مسیر package: $PKG_DIR"
-
-# خواندن فایل‌های ipk از لیست یا دایرکتوری
-PKG_FILES=""
-if [ -f "$TMP_DIR/_pkg_list.txt" ]; then
-  echof ">>> ترتیب نصب از _pkg_list.txt"
-  PKG_FILES=$(grep -vE '^\s*(#|$)' "$TMP_DIR/_pkg_list.txt" | tr '\n' ' ')
-else
-  PKG_FILES=$(ls -1 "$PKG_DIR"/*.ipk 2>/dev/null | xargs -n1 basename | sort | tr '\n' ' ')
-fi
-
-if [ -z "$PKG_FILES" ]; then
-  echof "[خطا] فایل .ipk برای نصب یافت نشد!"
-  exit 1
-fi
-
-echof ">>> لیست پکیج‌ها:"
-for f in $PKG_FILES; do
-  echof " - $f"
+  echof "   نصب $IPK ..."
+  if opkg install --force-reinstall "$SRC" >/dev/null 2>&1; then
+    echof "   [موفق] نصب $IPK"
+  else
+    echof "   [خطا] نصب $IPK شکست خورد!"
+    exit 1
+  fi
 done
 
-# نصب هر ipk با opkg
-if command -v opkg >/dev/null 2>&1; then
-  for p in $PKG_FILES; do
-    if [ -f "$PKG_DIR/$p" ]; then
-      SRC="$PKG_DIR/$p"
-    else
-      SRC="$TMP_DIR/$p"
-      echof ">>> دانلود $p از GitHub raw..."
-      if command -v wget >/dev/null 2>&1; then
-        wget -qO "$SRC" "$REPO_RAW_ROOT/package/$p" || {
-          echof "[خطا] دانلود $p ناموفق."
-          exit 1
-        }
-      elif command -v curl >/dev/null 2>&1; then
-        curl -fsSL "$REPO_RAW_ROOT/package/$p" -o "$SRC" || {
-          echof "[خطا] دانلود $p ناموفق."
-          exit 1
-        }
-      else
-        echof "[خطا] wget یا curl یافت نشد."
-        exit 1
-      fi
-    fi
-    echof ">>> نصب $p ..."
-    opkg install --force-reinstall "$SRC" >/dev/null 2>&1 || {
-      echof "[خطا] نصب $p با opkg با خطا مواجه شد."
-      exit 1
-    }
-    echof "[موفق] نصب $p"
-  done
-else
-  echof "[خطا] opkg نصب نیست!"
-  exit 1
-fi
-
-# کپی فایل‌ها (ایمن)
+echof ">>> بخش کپی فایل‌های پیکربندی (etc، usr، www-open)..."
 safe_copy() {
   src="$1"
   dest="$2"
-  if [ ! -d "$src" ]; then
-    return 0
-  fi
+  if [ ! -d "$src" ]; then return 0; fi
   mkdir -p "$dest"
   find "$src" -type f | while read -r f; do
-    rel=$(echo "$f" | sed "s^$src/^^")
+    rel="${f#$src/}"
     destf="$dest/$rel"
     mkdir -p "$(dirname "$destf")"
-    if [ -f "$destf" ]; then
-      echof "[جایگزینی] $destf"
-    else
-      echof "[جدید] $destf"
-    fi
-    cp "$f" "$destf" || echof "[خطا] کپی $f به $destf ناموفق بود."
+    cp "$f" "$destf" && echof "[کپی] $rel"
   done
 }
 
-echof ">>> کپی فایل‌های etc و usr (اگر باشند)"
-safe_copy "$TMP_DIR/files/etc" "/etc"
-safe_copy "$TMP_DIR/files/usr" "/usr"
+safe_copy "/tmp/LTE-Modem/files/etc" "/etc"
+safe_copy "/tmp/LTE-Modem/files/usr" "/usr"
 
-if [ -d "$TMP_DIR/files/www-open" ]; then
-  echof ">>> کپی www-open"
-  cp -r "$TMP_DIR/files/www-open" "/" || echof "[خطا] کپی www-open ناموفق بود."
+if [ -d "/tmp/LTE-Modem/files/www-open" ]; then
+  cp -r "/tmp/LTE-Modem/files/www-open" "/" || echof "[خطا] کپی www-open ناموفق بود."
 fi
 
-# ست کردن مجوز اجرا (اگر باشد)
-echof ">>> ست کردن مجوز اجرا برای اسکریپت‌ها"
-[ -f /usr/bin/send_at.sh ] && chmod +x /usr/bin/send_at.sh && echof "[OK] send_at.sh اجرایی شد."
-[ -f /usr/bin/update_apn.sh ] && chmod +x /usr/bin/update_apn.sh && echof "[OK] update_apn.sh اجرایی شد."
-[ -f /usr/share/synctechmodem/get_modem_info.sh ] && chmod +x /usr/share/synctechmodem/get_modem_info.sh && echof "[OK] get_modem_info.sh اجرایی شد."
-[ -f /www-open/cgi-bin/status_open.sh ] && chmod +x /www-open/cgi-bin/status_open.sh && echof "[OK] status_open.sh اجرایی شد."
+echof ">>> تنظیم دسترسی فایل‌های اجرایی (در صورت وجود)"
+[ -f /usr/bin/send_at.sh ] && chmod +x /usr/bin/send_at.sh
+[ -f /usr/bin/update_apn.sh ] && chmod +x /usr/bin/update_apn.sh
+[ -f /usr/share/synctechmodem/get_modem_info.sh ] && chmod +x /usr/share/synctechmodem/get_modem_info.sh
+[ -f /www-open/cgi-bin/status_open.sh ] && chmod +x /www-open/cgi-bin/status_open.sh
 
-# ری‌استارت سرویس وب و ریبوت اختیاری
 if [ -x /etc/init.d/uhttpd ]; then
-  echof ">>> ری‌استارت uhttpd..."
-  /etc/init.d/uhttpd restart >/dev/null 2>&1 || echof "[هشدار] ری‌استارت uhttpd ناموفق بود."
+  echof ">>> ریستارت وب‌سرور uhttpd ..."
+  /etc/init.d/uhttpd restart >/dev/null 2>&1 || echof "[هشدار] ریستارت uhttpd ناموفق بود."
 fi
 
-echof ">>> نصب با موفقیت انجام شد."
-# ریبوت خودکار (اختیاری)
-# reboot
-
+echof "نصب و پیکربندی با موفقیت انجام شد!"
+# reboot  # اگر لازم داری فعال کن
 exit 0
