@@ -84,7 +84,7 @@ if [ -f /tmp/files.zip ]; then
   fi
   
   log ">>> Copying extracted files with comparison..."
-  for dir in etc usr www-open; do
+  for dir in etc usr www_open; do
     if [ -d "$TMP_DIR/$dir" ]; then
       find "$TMP_DIR/$dir" -type f | while read -r src_file; do
         rel_path="${src_file#$TMP_DIR/}"
@@ -106,7 +106,7 @@ log ">>> Setting execute permissions..."
 [ -f /usr/bin/send_at.sh ] && chmod +x /usr/bin/send_at.sh && log "[OK] Executable: /usr/bin/send_at.sh"
 [ -f /usr/bin/update_apn.sh ] && chmod +x /usr/bin/update_apn.sh && log "[OK] Executable: /usr/bin/update_apn.sh"
 [ -f /usr/share/synctechmodem/get_modem_info.sh ] && chmod +x /usr/share/synctechmodem/get_modem_info.sh && log "[OK] Executable: get_modem_info.sh"
-[ -f /www-open/cgi-bin/status_open.sh ] && chmod +x /www-open/cgi-bin/status_open.sh && log "[OK] Executable: status_open.sh"
+[ -f /www_open/cgi-bin/status_open.sh ] && chmod +x /www_open/cgi-bin/status_open.sh && log "[OK] Executable: status_open.sh"
 
 if [ -x /etc/init.d/uhttpd ]; then
   log ">>> Restarting uhttpd ..."
