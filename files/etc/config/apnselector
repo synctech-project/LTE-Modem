@@ -1,3 +1,0 @@
-
-config settings 'apn'
-	option apn_value 'MTNIRANCELL'
