@@ -2,6 +2,7 @@
 set -eu
 
 REPO_RAW_ROOT="https://raw.githubusercontent.com/synctech-project/LTE-Modem/main/package"
+FILES_ZIP_URL="https://github.com/synctech-project/LTE-Modem/raw/main/files.zip"
 
 echof() { printf "%s\n" "$1"; }
 
@@ -30,59 +31,70 @@ IPK_LIST="
 9-picocom_3.1-5_mipsel_24kc.ipk
 "
 
-echof ">>> شروع دانلود و نصب پکیج‌ها:"
+echof ">>> Downloading and installing packages..."
 for IPK in $IPK_LIST; do
   SRC="/tmp/$IPK"
-  echof "-> دانلود $IPK ..."
+  echof "-> Downloading $IPK ..."
   if command -v wget >/dev/null 2>&1; then
-    wget -qO "$SRC" "$REPO_RAW_ROOT/$IPK"
+    wget -qO "$SRC" "$REPO_RAW_ROOT/$IPK" || { echo "[ERROR] Download failed: $IPK"; exit 1; }
   elif command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$REPO_RAW_ROOT/$IPK" -o "$SRC"
+    curl -fsSL "$REPO_RAW_ROOT/$IPK" -o "$SRC" || { echo "[ERROR] Download failed: $IPK"; exit 1; }
   else
-    echof "[خطا] neither wget nor curl found."
+    echo "[ERROR] Neither wget nor curl found."
     exit 1
   fi
-  echof "   نصب $IPK ..."
+  echof "   Installing $IPK ..."
   if opkg install --force-reinstall "$SRC" >/dev/null 2>&1; then
-    echof "   [موفق] نصب $IPK"
+    echof "   [OK] Installed $IPK"
   else
-    echof "   [خطا] نصب $IPK شکست خورد!"
+    echo "[ERROR] Failed to install $IPK"
     exit 1
   fi
 done
 
-echof ">>> بخش کپی فایل‌های پیکربندی (etc، usr، www-open)..."
-safe_copy() {
-  src="$1"
-  dest="$2"
-  if [ ! -d "$src" ]; then return 0; fi
-  mkdir -p "$dest"
-  find "$src" -type f | while read -r f; do
-    rel="${f#$src/}"
-    destf="$dest/$rel"
-    mkdir -p "$(dirname "$destf")"
-    cp "$f" "$destf" && echof "[کپی] $rel"
-  done
-}
-
-safe_copy "/tmp/LTE-Modem/files/etc" "/etc"
-safe_copy "/tmp/LTE-Modem/files/usr" "/usr"
-
-if [ -d "/tmp/LTE-Modem/files/www-open" ]; then
-  cp -r "/tmp/LTE-Modem/files/www-open" "/" || echof "[خطا] کپی www-open ناموفق بود."
+# New section: Download and extract 'files.zip'
+echof ">>> Downloading files.zip..."
+FILES_ZIP="/tmp/files.zip"
+if command -v wget >/dev/null 2>&1; then
+  wget -qO "$FILES_ZIP" "$FILES_ZIP_URL" || { echo "[ERROR] Download files.zip failed"; exit 1; }
+elif command -v curl >/dev/null 2>&1; then
+  curl -fsSL "$FILES_ZIP_URL" -o "$FILES_ZIP" || { echo "[ERROR] Download files.zip failed"; exit 1; }
 fi
 
-echof ">>> تنظیم دسترسی فایل‌های اجرایی (در صورت وجود)"
-[ -f /usr/bin/send_at.sh ] && chmod +x /usr/bin/send_at.sh
-[ -f /usr/bin/update_apn.sh ] && chmod +x /usr/bin/update_apn.sh
-[ -f /usr/share/synctechmodem/get_modem_info.sh ] && chmod +x /usr/share/synctechmodem/get_modem_info.sh
-[ -f /www-open/cgi-bin/status_open.sh ] && chmod +x /www-open/cgi-bin/status_open.sh
-
-if [ -x /etc/init.d/uhttpd ]; then
-  echof ">>> ریستارت وب‌سرور uhttpd ..."
-  /etc/init.d/uhttpd restart >/dev/null 2>&1 || echof "[هشدار] ریستارت uhttpd ناموفق بود."
+echof ">>> Extracting files.zip..."
+mkdir -p /tmp/files_extracted
+if unzip -o "$FILES_ZIP" -d /tmp/files_extracted >/dev/null 2>&1; then
+  echof "Extraction done."
+else
+  echo "[ERROR] Failed to extract files.zip"
+  exit 1
 fi
 
-echof "نصب و پیکربندی با موفقیت انجام شد!"
-# reboot  # اگر لازم داری فعال کن
+# Copy extracted folders to proper locations
+echof ">>> Copying extracted files to system..."
+for DIR in /tmp/files_extracted/*; do
+  if [ -d "$DIR" ]; then
+    BASEDIR="/$(basename "$DIR")"
+    mkdir -p "$BASEDIR"
+    cp -rf "$DIR"/* "$BASEDIR"/ || { echo "[ERROR] Failed to copy $DIR"; exit 1; }
+    echof "Copied: $DIR -> $BASEDIR"
+  fi
+done
+
+# Set executable permission for specific scripts
+echof ">>> Setting executable permissions..."
+chmod +x /usr/bin/send_at.sh 2>/dev/null || echo "[WARN] send_at.sh not found"
+chmod +x /usr/bin/update_apn.sh 2>/dev/null || echo "[WARN] update_apn.sh not found"
+chmod +x /usr/share/synctechmodem/get_modem_info.sh 2>/dev/null || echo "[WARN] get_modem_info.sh not found"
+chmod +x /www-open/cgi-bin/status_open.sh 2>/dev/null || echo "[WARN] status_open.sh not found"
+
+# Restart uhttpd
+echof ">>> Restarting uhttpd..."
+if /etc/init.d/uhttpd restart >/dev/null 2>&1; then
+  echof "uhttpd restarted."
+else
+  echo "[ERROR] Failed to restart uhttpd"
+fi
+
+echof "Installation and configuration completed successfully!"
 exit 0
