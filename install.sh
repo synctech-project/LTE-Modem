@@ -1,5 +1,5 @@
 #!/bin/sh
-uuci set system.@system[0].zonename='Asia/Tehran'
+uci set system.@system[0].zonename='Asia/Tehran'
 
 uci set system.@system[0].timezone='<+0330>-3:30'
 
