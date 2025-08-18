@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-# تنظیمات اولیه
+# تنظیمات اولیه سیستم
 uci set system.@system[0].zonename='Asia/Tehran'
 uci set system.@system[0].timezone='<+0330>-3:30'
 uci commit system
@@ -9,19 +9,20 @@ uci commit system
 uci set system.@system[0].hostname='AGC-Global'
 uci commit system
 
-# ست کردن hostname فقط اگر دستور موجود بود
+# ست‌کردن hostname موقتی فقط اگر دستور موجود باشد
 if command -v hostname >/dev/null 2>&1; then
     hostname 'AGC-Global'
 else
     echo "[WARN] hostname command not found — skipping setting runtime hostname."
 fi
 
+# بنر
 echo "
  ____                  _____         _
 / ___| _   _ _ __   __|_   _|__  ___| |__
-\___ \| | | | '_ \ / __|| |/ _ \/ __| '_ \
+\___ \| | | | '_ \ / __|| |/ _ \/ __| '_ \\
  ___) | |_| | | | | (__ | |  __/ (__| | | |
-|____/ \__, |_| |_|\___||_|\___|\___|_| |_|
+|____/ \__, |_| |_|\___||_|\\___|\\___|_| |_|
        |___/
 " > /etc/banner
 
@@ -35,12 +36,14 @@ log() {
 REPO_RAW_ROOT="https://raw.githubusercontent.com/synctech-project/LTE-Modem/main/package"
 FILES_ZIP_URL="https://raw.githubusercontent.com/synctech-project/LTE-Modem/main/files.zip"
 
-# ترتیب اصلاح‌شده: اول پیش‌نیازها، بعد luci-lua-runtime و luci-compat
+# لیست پکیج‌ها
 IPK_LIST="
 0-kmod-nls-base_5.15.167-1_mipsel_24kc.ipk
 1-0-kmod-usb-core_5.15.167-1_mipsel_24kc.ipk
 1-1kmod-usb-ehci_5.15.167-1_mipsel_24kc.ipk
 1-liblua5.1.5_5.1.5-11_mipsel_24kc.ipk
+10-luci-lua-runtime_git-25.176.69269-6e21c0e_mipsel_24kc.ipk
+11-luci-compat_git-25.176.69269-6e21c0e_all.ipk
 2-kmod-usb2_5.15.167-1_mipsel_24kc.ipk
 2-lua_5.1.5-11_mipsel_24kc.ipk
 3-kmod-mii_5.15.167-1_mipsel_24kc.ipk
@@ -56,8 +59,6 @@ IPK_LIST="
 8-kmod-usb-serial-option_5.15.167-1_mipsel_24kc.ipk
 8-luci-lib-nixio_git-25.176.69269-6e21c0e_mipsel_24kc.ipk
 9-luci-lib-base_git-25.176.69269-6e21c0e_all.ipk
-10-luci-lua-runtime_git-25.176.69269-6e21c0e_mipsel_24kc.ipk
-11-luci-compat_git-25.176.69269-6e21c0e_all.ipk
 9-picocom_3.1-5_mipsel_24kc.ipk
 unzip_6.0-8_mipsel_24kc.ipk
 "
@@ -67,9 +68,9 @@ for IPK in $IPK_LIST; do
   SRC="/tmp/$IPK"
   log "-> Downloading $IPK ..."
   if command -v wget >/dev/null 2>&1; then
-    wget -O "$SRC" "$REPO_RAW_ROOT/$IPK" || { log "[WARN] Failed to download $IPK"; continue; }
+    wget -qO "$SRC" "$REPO_RAW_ROOT/$IPK" || { log "[WARN] Failed to download $IPK"; continue; }
   elif command -v curl >/dev/null 2>&1; then
-    curl -fSL "$REPO_RAW_ROOT/$IPK" -o "$SRC" || { log "[WARN] Failed to download $IPK"; continue; }
+    curl -fsSL "$REPO_RAW_ROOT/$IPK" -o "$SRC" || { log "[WARN] Failed to download $IPK"; continue; }
   else
     log "[ERROR] Neither wget nor curl found."
     break
@@ -79,7 +80,7 @@ for IPK in $IPK_LIST; do
   if opkg install --force-reinstall "$SRC"; then
     log "   [OK] Installed $IPK"
   else
-    log "[ERROR] Failed to install $IPK"
+    log "[WARN] Failed to install $IPK"
   fi
 done
 
@@ -89,9 +90,9 @@ rm -rf "$TMP_DIR"
 mkdir -p "$TMP_DIR"
 
 if command -v wget >/dev/null 2>&1; then
-  wget -O /tmp/files.zip "$FILES_ZIP_URL" || log "[ERROR] Failed to download files.zip"
+  wget -qO /tmp/files.zip "$FILES_ZIP_URL" || log "[ERROR] Failed to download files.zip"
 elif command -v curl >/dev/null 2>&1; then
-  curl -fSL "$FILES_ZIP_URL" -o /tmp/files.zip || log "[ERROR] Failed to download files.zip"
+  curl -fsSL "$FILES_ZIP_URL" -o /tmp/files.zip || log "[ERROR] Failed to download files.zip"
 fi
 
 if [ -f /tmp/files.zip ]; then
