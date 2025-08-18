@@ -113,6 +113,9 @@ if [ -x /etc/init.d/uhttpd ]; then
   log ">>> Restarting uhttpd ..."
   /etc/init.d/uhttpd restart >/dev/null 2>&1 && log "[OK] uhttpd restarted." || log "[WARN] Failed to restart uhttpd."
 fi
+log ">>> Cleaning up downloaded files..."
+rm -f /tmp/*.ipk /tmp/files.zip
+log "[OK] Cleanup completed."
 
 log ">>> Installation and configuration completed."
 log ">>> Full log saved to $LOG_FILE"
