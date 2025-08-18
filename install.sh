@@ -1,22 +1,23 @@
 #!/bin/sh
+set -eu
+
+# تنظیمات اولیه
 uci set system.@system[0].zonename='Asia/Tehran'
-
 uci set system.@system[0].timezone='<+0330>-3:30'
-
 uci commit system
 
-uci set system.@system[0].hostname=AGC-Global
-
+uci set system.@system[0].hostname='AGC-Global'
 uci commit system
+hostname 'AGC-Global'
+
 echo "
- ____                  _____         _     
-/ ___| _   _ _ __   __|_   _|__  ___| |__  
-\___ \| | | | '_ \ / __|| |/ _ \/ __| '_ \ 
+ ____                  _____         _
+/ ___| _   _ _ __   __|_   _|__  ___| |__
+\___ \| | | | '_ \ / __|| |/ _ \/ __| '_ \
  ___) | |_| | | | | (__ | |  __/ (__| | | |
 |____/ \__, |_| |_|\___||_|\___|\___|_| |_|
-       |___/                               
+       |___/
 " > /etc/banner
-set -eu
 
 LOG_FILE="/tmp/install_log.txt"
 : > "$LOG_FILE"
@@ -28,13 +29,12 @@ log() {
 REPO_RAW_ROOT="https://raw.githubusercontent.com/synctech-project/LTE-Modem/main/package"
 FILES_ZIP_URL="https://raw.githubusercontent.com/synctech-project/LTE-Modem/main/files.zip"
 
+# ترتیب اصلاح‌شده: اول پیش‌نیازها، بعد luci-lua-runtime و luci-compat
 IPK_LIST="
 0-kmod-nls-base_5.15.167-1_mipsel_24kc.ipk
 1-0-kmod-usb-core_5.15.167-1_mipsel_24kc.ipk
 1-1kmod-usb-ehci_5.15.167-1_mipsel_24kc.ipk
 1-liblua5.1.5_5.1.5-11_mipsel_24kc.ipk
-10-luci-lua-runtime_git-25.176.69269-6e21c0e_mipsel_24kc.ipk
-11-luci-compat_git-25.176.69269-6e21c0e_all.ipk
 2-kmod-usb2_5.15.167-1_mipsel_24kc.ipk
 2-lua_5.1.5-11_mipsel_24kc.ipk
 3-kmod-mii_5.15.167-1_mipsel_24kc.ipk
@@ -50,6 +50,8 @@ IPK_LIST="
 8-kmod-usb-serial-option_5.15.167-1_mipsel_24kc.ipk
 8-luci-lib-nixio_git-25.176.69269-6e21c0e_mipsel_24kc.ipk
 9-luci-lib-base_git-25.176.69269-6e21c0e_all.ipk
+10-luci-lua-runtime_git-25.176.69269-6e21c0e_mipsel_24kc.ipk
+11-luci-compat_git-25.176.69269-6e21c0e_all.ipk
 9-picocom_3.1-5_mipsel_24kc.ipk
 unzip_6.0-8_mipsel_24kc.ipk
 "
@@ -58,28 +60,20 @@ log ">>> Downloading and installing packages..."
 for IPK in $IPK_LIST; do
   SRC="/tmp/$IPK"
   log "-> Downloading $IPK ..."
-  
   if command -v wget >/dev/null 2>&1; then
-    wget -qO "$SRC" "$REPO_RAW_ROOT/$IPK" || {
-      log "[WARN] Failed to download $IPK"
-      continue
-    }
+    wget -O "$SRC" "$REPO_RAW_ROOT/$IPK" || { log "[WARN] Failed to download $IPK"; continue; }
   elif command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$REPO_RAW_ROOT/$IPK" -o "$SRC" || {
-      log "[WARN] Failed to download $IPK"
-      continue
-    }
+    curl -fSL "$REPO_RAW_ROOT/$IPK" -o "$SRC" || { log "[WARN] Failed to download $IPK"; continue; }
   else
     log "[ERROR] Neither wget nor curl found."
     break
   fi
-  
+
   log "   Installing $IPK ..."
-  if opkg install --force-reinstall "$SRC" >/dev/null 2>&1; then
+  if opkg install --force-reinstall "$SRC"; then
     log "   [OK] Installed $IPK"
   else
-    log "[WARN] Failed to install $IPK"
-    continue
+    log "[ERROR] Failed to install $IPK"
   fi
 done
 
@@ -89,9 +83,9 @@ rm -rf "$TMP_DIR"
 mkdir -p "$TMP_DIR"
 
 if command -v wget >/dev/null 2>&1; then
-  wget -qO /tmp/files.zip "$FILES_ZIP_URL" || log "[ERROR] Failed to download files.zip"
+  wget -O /tmp/files.zip "$FILES_ZIP_URL" || log "[ERROR] Failed to download files.zip"
 elif command -v curl >/dev/null 2>&1; then
-  curl -fsSL "$FILES_ZIP_URL" -o /tmp/files.zip || log "[ERROR] Failed to download files.zip"
+  curl -fSL "$FILES_ZIP_URL" -o /tmp/files.zip || log "[ERROR] Failed to download files.zip"
 fi
 
 if [ -f /tmp/files.zip ]; then
@@ -100,8 +94,8 @@ if [ -f /tmp/files.zip ]; then
   else
     log "[ERROR] Failed to unzip files.zip"
   fi
-  
-  log ">>> Copying extracted files with comparison..."
+
+  log ">>> Copying extracted files..."
   for dir in etc usr www_open; do
     if [ -d "$TMP_DIR/$dir" ]; then
       find "$TMP_DIR/$dir" -type f | while read -r src_file; do
@@ -128,67 +122,7 @@ log ">>> Setting execute permissions..."
 
 if [ -x /etc/init.d/uhttpd ]; then
   log ">>> Restarting uhttpd ..."
-  /etc/init.d/uhttpd restart >/dev/null 2>&1 && log "[OK] uhttpd restarted." || log "[WARN] Failed to restart uhttpd."
-fi
-
-log ">>> Updating or adding 'wwan' interface..."
-NET_FILE="/etc/config/network"
-
-if grep -q "config interface 'wwan'" "$NET_FILE"; then
-    log "[INFO] 'wwan' exists - replacing configuration..."
-    # Delete the existing 'wwan' block
-    sed -i "/config interface 'wwan'/,/^config / {/config /!d}" "$NET_FILE"
-else
-    log "[INFO] 'wwan' not found - adding new configuration..."
-fi
-
-cat >> "$NET_FILE" <<'EOF'
-config interface 'wwan'
-    option proto 'dhcp'
-    option device 'usb0'
-    option peerdns '0'
-    list dns '1.1.1.1'
-    list dns '8.8.8.8'
-EOF
-
-if /etc/init.d/network restart >/dev/null 2>&1; then
-    log "[OK] Network service restarted."
-else
-    log "[WARN] Failed to restart network service."
-fi
-
-log ">>> Updating firewall configuration..."
-FW_FILE="/etc/config/firewall"
-
-# Update LAN zone policies to ACCEPT
-if awk '/config zone/{block=""} {block=block $0 ORS} /config zone/{if(block ~ /option name.lan./){print block} block=""}' "$FW_FILE" | grep -q "option name 'lan'"; then
-    log "[INFO] Updating LAN zone policies to ACCEPT..."
-    sed -i "/config zone/,/^config /{
-        /option name 'lan'/, /^config /{
-            s/^\(\s*option input\s*\).*/\1'ACCEPT'/
-            s/^\(\s*option output\s*\).*/\1'ACCEPT'/
-            s/^\(\s*option forward\s*\).*/\1'ACCEPT'/
-        }
-    }" "$FW_FILE"
-else
-    log "[WARN] LAN zone not found, skipping policy update."
-fi
-
-# Ensure 'wwan' exists in WAN zone networks list
-if grep -q "option name 'wan'" "$FW_FILE"; then
-    if ! awk '/option name .wan./,/^config /' "$FW_FILE" | grep -q "list network 'wwan'"; then
-        log "[INFO] Adding 'wwan' to WAN zone networks..."
-        sed -i "/option name 'wan'/,/^config /{
-            /list network/ {
-                /list network 'wan'/a\	list network 'wwan'
-                b
-            }
-        }" "$FW_FILE"
-    else
-        log "[INFO] 'wwan' already exists in WAN zone."
-    fi
-else
-    log "[WARN] WAN zone not found, skipping 'wwan' addition."
+  /etc/init.d/uhttpd restart && log "[OK] uhttpd restarted." || log "[WARN] Failed to restart uhttpd."
 fi
 
 log ">>> Cleaning up downloaded files..."
