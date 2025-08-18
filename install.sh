@@ -25,7 +25,7 @@ echo "
 set -eu
 
 LOG_FILE="/tmp/install_log.txt"
-: > "$LOG_FILE"   # clear log file
+: > "$LOG_FILE"  
 
 log() {
   printf "%s\n" "$1" | tee -a "$LOG_FILE"
@@ -200,10 +200,8 @@ WL_FILE="/etc/config/wireless"
 
 if grep -q "option network 'wwan2'" "$WL_FILE"; then
     log "[INFO] Found 'wwan2' interface in wireless config. Removing..."
-    # حذف کل بلوکی که option network 'wwan2' دارد
     sed -i '/^config wifi-iface/,/^config /{H;/option network '\''wwan2'\''/h};${x;/wwan2/{s/^.*\n//;p;};d}' "$WL_FILE"
 
-    # ریلود وایرلس
     if wifi reload >/dev/null 2>&1; then
         log "[OK] Wireless configuration reloaded."
     else
