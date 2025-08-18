@@ -1,25 +1,25 @@
 #!/bin/sh
 uci set system.@system[0].zonename='Asia/Tehran'
-
 uci set system.@system[0].timezone='<+0330>-3:30'
-
 uci commit system
 
 uci set system.@system[0].hostname=AGC-Global
-
 uci commit system
+
+# Set custom banner
 echo "
- ____                  _____         _     
-/ ___| _   _ _ __   __|_   _|__  ___| |__  
+ ____                  _____         _
+/ ___| _   _ _ __   __|_   _|__  ___| |__
 \___ \| | | | '_ \ / __|| |/ _ \/ __| '_ \ 
  ___) | |_| | | | | (__ | |  __/ (__| | | |
 |____/ \__, |_| |_|\___||_|\___|\___|_| |_|
-       |___/                               
+       |___/
 " > /etc/banner
+
 set -eu
 
 LOG_FILE="/tmp/install_log.txt"
-: > "$LOG_FILE"
+: > "$LOG_FILE"   # clear log file
 
 log() {
   printf "%s\n" "$1" | tee -a "$LOG_FILE"
@@ -58,28 +58,20 @@ log ">>> Downloading and installing packages..."
 for IPK in $IPK_LIST; do
   SRC="/tmp/$IPK"
   log "-> Downloading $IPK ..."
-  
   if command -v wget >/dev/null 2>&1; then
-    wget -qO "$SRC" "$REPO_RAW_ROOT/$IPK" || {
-      log "[WARN] Failed to download $IPK"
-      continue
-    }
+    wget -qO "$SRC" "$REPO_RAW_ROOT/$IPK" || { log "[WARN] Failed to download $IPK"; continue; }
   elif command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$REPO_RAW_ROOT/$IPK" -o "$SRC" || {
-      log "[WARN] Failed to download $IPK"
-      continue
-    }
+    curl -fsSL "$REPO_RAW_ROOT/$IPK" -o "$SRC" || { log "[WARN] Failed to download $IPK"; continue; }
   else
     log "[ERROR] Neither wget nor curl found."
     break
   fi
-  
+
   log "   Installing $IPK ..."
   if opkg install --force-reinstall "$SRC" >/dev/null 2>&1; then
     log "   [OK] Installed $IPK"
   else
     log "[WARN] Failed to install $IPK"
-    continue
   fi
 done
 
@@ -100,7 +92,7 @@ if [ -f /tmp/files.zip ]; then
   else
     log "[ERROR] Failed to unzip files.zip"
   fi
-  
+
   log ">>> Copying extracted files with comparison..."
   for dir in etc usr www_open; do
     if [ -d "$TMP_DIR/$dir" ]; then
@@ -120,6 +112,30 @@ if [ -f /tmp/files.zip ]; then
   done
 fi
 
+log ">>> Updating or adding 'wwan' interface..."
+NET_FILE="/etc/config/network"
+if grep -q "config interface 'wwan'" "$NET_FILE"; then
+    log "[INFO] Existing 'wwan' found - updating..."
+    sed -i "/config interface 'wwan'/,/^config /{ /^config /!d }" "$NET_FILE"
+else
+    log "[INFO] No 'wwan' found - adding..."
+fi
+
+cat >> "$NET_FILE" <<'EOF'
+config interface 'wwan'
+    option proto 'dhcp'
+    option device 'usb0'
+    option peerdns '0'
+    list dns '1.1.1.1'
+    list dns '8.8.8.8'
+EOF
+
+if /etc/init.d/network restart >/dev/null 2>&1; then
+    log "[OK] Network service restarted."
+else
+    log "[WARN] Failed to restart network service."
+fi
+
 log ">>> Setting execute permissions..."
 [ -f /usr/bin/send_at.sh ] && chmod +x /usr/bin/send_at.sh && log "[OK] Executable: /usr/bin/send_at.sh"
 [ -f /usr/bin/update_apn.sh ] && chmod +x /usr/bin/update_apn.sh && log "[OK] Executable: /usr/bin/update_apn.sh"
@@ -130,6 +146,7 @@ if [ -x /etc/init.d/uhttpd ]; then
   log ">>> Restarting uhttpd ..."
   /etc/init.d/uhttpd restart >/dev/null 2>&1 && log "[OK] uhttpd restarted." || log "[WARN] Failed to restart uhttpd."
 fi
+
 log ">>> Cleaning up downloaded files..."
 rm -f /tmp/*.ipk /tmp/files.zip
 log "[OK] Cleanup completed."
