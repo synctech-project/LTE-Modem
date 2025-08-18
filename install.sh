@@ -15,7 +15,7 @@ echo "
  ___) | |_| | | | | (__ | |  __/ (__| | | |
 |____/ \__, |_| |_|\___||_|\___|\___|_| |_|
        |___/                               
-" >> /etc/banner
+" > /etc/banner
 set -eu
 
 LOG_FILE="/tmp/install_log.txt"
