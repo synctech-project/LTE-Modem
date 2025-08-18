@@ -1,4 +1,21 @@
 #!/bin/sh
+uuci set system.@system[0].zonename='Asia/Tehran'
+
+uci set system.@system[0].timezone='<+0330>-3:30'
+
+uci commit system
+
+uci set system.@system[0].hostname=AGC-Global
+
+uci commit system
+echo "
+ ____                  _____         _     
+/ ___| _   _ _ __   __|_   _|__  ___| |__  
+\___ \| | | | '_ \ / __|| |/ _ \/ __| '_ \ 
+ ___) | |_| | | | | (__ | |  __/ (__| | | |
+|____/ \__, |_| |_|\___||_|\___|\___|_| |_|
+       |___/                               
+" >> /etc/banner
 set -eu
 
 LOG_FILE="/tmp/install_log.txt"
