@@ -147,6 +147,48 @@ if [ -x /etc/init.d/uhttpd ]; then
   /etc/init.d/uhttpd restart >/dev/null 2>&1 && log "[OK] uhttpd restarted." || log "[WARN] Failed to restart uhttpd."
 fi
 
+log ">>> Updating firewall configuration..."
+
+FW_FILE="/etc/config/firewall"
+
+# Ensure LAN zone policies are all ACCEPT
+if grep -q "config zone" "$FW_FILE" && grep -q "option name 'lan'" "$FW_FILE"; then
+    log "[INFO] Updating LAN zone policies to ACCEPT..."
+    sed -i "/config zone/,/config /{
+        /option name 'lan'/,/config /{
+            s/^\(\s*option input\s*\).*/\1'ACCEPT'/
+            s/^\(\s*option output\s*\).*/\1'ACCEPT'/
+            s/^\(\s*option forward\s*\).*/\1'ACCEPT'/
+        }
+    }" "$FW_FILE"
+else
+    log "[WARN] LAN zone not found, skipping policy update."
+fi
+
+# Ensure 'wwan' is in WAN zone networks list
+if grep -q "option name 'wan'" "$FW_FILE"; then
+    if ! awk '/option name .wan./,/^config /' "$FW_FILE" | grep -q "list network 'wwan'"; then
+        log "[INFO] Adding 'wwan' to WAN zone networks..."
+        sed -i "/option name 'wan'/,/^config /{
+            /list network/ {
+                /list network 'wan'/a\	list network 'wwan'
+                b
+            }
+        }" "$FW_FILE"
+    else
+        log "[INFO] 'wwan' already exists in WAN zone."
+    fi
+else
+    log "[WARN] WAN zone not found, skipping 'wwan' addition."
+fi
+
+# Commit and restart firewall
+if /etc/init.d/firewall restart >/dev/null 2>&1; then
+    log "[OK] Firewall service restarted."
+else
+    log "[WARN] Failed to restart firewall service."
+fi
+
 log ">>> Cleaning up downloaded files..."
 rm -f /tmp/*.ipk /tmp/files.zip
 log "[OK] Cleanup completed."
