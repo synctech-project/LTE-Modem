@@ -3,8 +3,14 @@ uci set system.@system[0].zonename='Asia/Tehran'
 uci set system.@system[0].timezone='<+0330>-3:30'
 uci commit system
 
-uci set system.@system[0].hostname=AGC-Global
+uci set system.@system[0].hostname='AGC-Global'
 uci commit system
+hostname 'AGC-Global'
+if /etc/init.d/system restart >/dev/null 2>&1; then
+    log "[OK] System service restarted and hostname applied."
+else
+    log "[WARN] Failed to restart system service. Hostname may require reboot to fully apply."
+fi
 
 # Set custom banner
 echo "
