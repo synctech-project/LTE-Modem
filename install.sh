@@ -8,7 +8,13 @@ uci commit system
 
 uci set system.@system[0].hostname='AGC-Global'
 uci commit system
-hostname 'AGC-Global'
+
+# ست کردن hostname فقط اگر دستور موجود بود
+if command -v hostname >/dev/null 2>&1; then
+    hostname 'AGC-Global'
+else
+    echo "[WARN] hostname command not found — skipping setting runtime hostname."
+fi
 
 echo "
  ____                  _____         _
