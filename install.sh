@@ -195,6 +195,24 @@ else
     log "[WARN] Failed to restart firewall service."
 fi
 
+log ">>> Removing wifi-iface with network 'wwan2' if it exists..."
+WL_FILE="/etc/config/wireless"
+
+if grep -q "option network 'wwan2'" "$WL_FILE"; then
+    log "[INFO] Found 'wwan2' interface in wireless config. Removing..."
+    # حذف کل بلوکی که option network 'wwan2' دارد
+    sed -i '/^config wifi-iface/,/^config /{H;/option network '\''wwan2'\''/h};${x;/wwan2/{s/^.*\n//;p;};d}' "$WL_FILE"
+
+    # ریلود وایرلس
+    if wifi reload >/dev/null 2>&1; then
+        log "[OK] Wireless configuration reloaded."
+    else
+        log "[WARN] Failed to reload wireless configuration."
+    fi
+else
+    log "[INFO] No 'wwan2' network interface found. Skipping."
+fi
+
 log ">>> Cleaning up downloaded files..."
 rm -f /tmp/*.ipk /tmp/files.zip
 log "[OK] Cleanup completed."
