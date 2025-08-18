@@ -34,6 +34,7 @@ IPK_LIST="
 8-luci-lib-nixio_git-25.176.69269-6e21c0e_mipsel_24kc.ipk
 9-luci-lib-base_git-25.176.69269-6e21c0e_all.ipk
 9-picocom_3.1-5_mipsel_24kc.ipk
+unzip_6.0-8_mipsel_24kc.ipk
 "
 
 log ">>> Downloading and installing packages..."
