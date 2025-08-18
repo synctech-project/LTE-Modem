@@ -130,6 +130,33 @@ if [ -x /etc/init.d/uhttpd ]; then
   log ">>> Restarting uhttpd ..."
   /etc/init.d/uhttpd restart >/dev/null 2>&1 && log "[OK] uhttpd restarted." || log "[WARN] Failed to restart uhttpd."
 fi
+
+log ">>> Updating or adding 'wwan' interface..."
+NET_FILE="/etc/config/network"
+
+if grep -q "config interface 'wwan'" "$NET_FILE"; then
+    log "[INFO] 'wwan' exists - replacing configuration..."
+    # Delete the existing 'wwan' block
+    sed -i "/config interface 'wwan'/,/^config / {/config /!d}" "$NET_FILE"
+else
+    log "[INFO] 'wwan' not found - adding new configuration..."
+fi
+
+cat >> "$NET_FILE" <<'EOF'
+config interface 'wwan'
+    option proto 'dhcp'
+    option device 'usb0'
+    option peerdns '0'
+    list dns '1.1.1.1'
+    list dns '8.8.8.8'
+EOF
+
+if /etc/init.d/network restart >/dev/null 2>&1; then
+    log "[OK] Network service restarted."
+else
+    log "[WARN] Failed to restart network service."
+fi
+
 log ">>> Cleaning up downloaded files..."
 rm -f /tmp/*.ipk /tmp/files.zip
 log "[OK] Cleanup completed."
