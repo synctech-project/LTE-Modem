@@ -52,7 +52,7 @@ EOF
 )
 
 FAILED_PKGS=""
-log ">>> Downloading and installing packages..."
+log "\033[0;34m>>> Downloading and installing packages...\033[0m"
 while IFS= read -r IPK; do  
   SRC="/tmp/$IPK"
   log "-> Downloading $IPK ..."
@@ -66,9 +66,9 @@ while IFS= read -r IPK; do
   fi
   log "   Installing $IPK ..."
   if opkg install --force-reinstall "$SRC" >/dev/null 2>&1; then
-    log "   [OK] Installed $IPK"
+    log "\033[0;32m[OK]\033[0m Installed $IPK"
   else
-    log "[WARN] Failed to install $IPK"
+    log "\033[0;31m[WARN]\033[0m Failed to install $IPK"
     FAILED_PKGS="$FAILED_PKGS $IPK"
     continue
   fi
@@ -93,7 +93,7 @@ if [ -n "$FAILED_PKGS" ]; then
   FAILED_PKGS="$RETRY_FAILED"
 fi
 
-log ">>> Downloading and extracting files.zip..."
+log "\033[0;34m>>> Downloading and extracting files.zip...\033[0m"
 TMP_DIR="/tmp/files_extracted"
 rm -rf "$TMP_DIR"
 mkdir -p "$TMP_DIR"
@@ -123,7 +123,7 @@ if [ -f /tmp/files.zip ]; then
   done
 fi
 
-log ">>> Setting execute permissions..."
+log "\033[0;34m>>>> Setting execute permissions...\033[0m"
 [ -f /usr/bin/send_at.sh ] && chmod +x /usr/bin/send_at.sh
 [ -f /usr/bin/update_apn.sh ] && chmod +x /usr/bin/update_apn.sh
 [ -f /usr/share/synctechmodem/get_modem_info.sh ] && chmod +x /usr/share/synctechmodem/get_modem_info.sh
@@ -139,7 +139,7 @@ else
     echo "[INFO] IP $LAN_IP has already been configured."
 fi
 
-log ">>> Configuring network interface 'wwan'..."
+log "033[0;34m>>> Configuring network interface 'wwan'...\033[0m"
 if uci get network.wwan >/dev/null 2>&1; then
     uci delete network.wwan
     log "[OK] Removed existing WWAN interface."
@@ -154,7 +154,7 @@ uci commit network
 /etc/init.d/network restart
 log "[OK] WWAN interface configured and applied."
 
-log ">>> Updating firewall rules..."
+log "033[0;34m>>> Updating firewall rules...\033[0m"
 LAN_SEC=$(uci show firewall | grep "firewall.@zone" | grep "name='lan'" | cut -d. -f2 | cut -d= -f1)
 uci set firewall.${LAN_SEC}.input='ACCEPT'
 uci set firewall.${LAN_SEC}.output='ACCEPT'
@@ -178,7 +178,7 @@ if [ -n "$FAILED_PKGS" ]; then
 else
 log "[OK] All packages installed successfully. Proceeding with wwan2 / wifi-iface removal..."
 
-log ">>> Removing wifi-iface sections with network 'wwan2'..."
+log "033[0;34m>>> Removing wifi-iface sections with network 'wwan2'...\033[0m"
 for section in $(uci show wireless | grep "=wifi-iface" | cut -d. -f2 | cut -d= -f1); do
     net_vals=$(uci get wireless.${section}.network 2>/dev/null || echo "")
     for n in $net_vals; do
@@ -192,7 +192,7 @@ uci commit wireless
 /etc/init.d/network restart
 log "[OK] Wireless updated."
 
-log ">>> Checking network config for interface 'wwan2'..."
+log "033[0;34m>>> Checking network config for interface 'wwan2'...\033[0m"
 if uci get network.wwan2 >/dev/null 2>&1; then
     uci delete network.wwan2
     log "[OK] Deleted 'network.wwan2' section."
@@ -208,7 +208,7 @@ uci commit network
 /etc/init.d/network restart
 fi
 
-log ">>> Cleaning up downloaded files..."
+log "033[0;34m>>> Cleaning up downloaded files...\033[0m"
 rm -f /tmp/*.ipk /tmp/files.zip
 rm -rf /tmp/files_extracted
 log "[OK] Cleanup completed."
