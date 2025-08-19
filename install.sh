@@ -107,6 +107,40 @@ log ">>> Setting execute permissions..."
 [ -f /usr/share/synctechmodem/get_modem_info.sh ] && chmod +x /usr/share/synctechmodem/get_modem_info.sh
 [ -f /www_open/cgi-bin/status_open.sh ] && chmod +x /www_open/cgi-bin/status_open.sh
 
+
+log ">>> Configuring network interface 'wwan'..."
+if uci get network.wwan >/dev/null 2>&1; then
+    uci delete network.wwan
+    log "[OK] Removed existing WWAN interface."
+fi
+uci set network.wwan=interface
+uci set network.wwan.proto='dhcp'
+uci set network.wwan.device='usb0'
+uci set network.wwan.peerdns='0'
+uci add_list network.wwan.dns='8.8.8.8'
+uci add_list network.wwan.dns='1.1.1.1'
+uci commit network
+/etc/init.d/network restart
+log "[OK] WWAN interface configured and applied."
+
+log ">>> Updating firewall rules..."
+LAN_SEC=$(uci show firewall | grep "firewall.@zone" | grep "name='lan'" | cut -d. -f2 | cut -d= -f1)
+uci set firewall.${LAN_SEC}.input='ACCEPT'
+uci set firewall.${LAN_SEC}.output='ACCEPT'
+uci set firewall.${LAN_SEC}.forward='ACCEPT'
+log "[OK] LAN zone set to ACCEPT."
+WAN_SEC=$(uci show firewall | grep "firewall.@zone" | grep "name='wan'" | cut -d. -f2 | cut -d= -f1)
+if ! uci get firewall.${WAN_SEC}.network 2>/dev/null | grep -qw 'wwan'; then
+    uci add_list firewall.${WAN_SEC}.network='wwan'
+    log "[OK] Added 'wwan' to WAN zone networks."
+else
+    log "[INFO] 'wwan' already exists in WAN zone."
+fi
+uci commit firewall
+/etc/init.d/firewall restart
+log "[OK] Firewall configuration applied."
+
+
 log ">>> Removing wifi-iface sections with network 'wwan2'..."
 for section in $(uci show wireless | grep "=wifi-iface" | cut -d. -f2 | cut -d= -f1); do
     net_vals=$(uci get wireless.${section}.network 2>/dev/null || echo "")
