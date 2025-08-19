@@ -53,22 +53,15 @@ log ">>> Downloading and installing packages..."
 for IPK in $IPK_LIST; do
   SRC="/tmp/$IPK"
   log "-> Downloading $IPK ..."
-  
   if command -v wget >/dev/null 2>&1; then
-    wget -qO "$SRC" "$REPO_RAW_ROOT/$IPK" || {
-      log "[WARN] Failed to download $IPK"
-      continue
-    }
+    wget -qO "$SRC" "$REPO_RAW_ROOT/$IPK" || { log "[WARN] Failed to download $IPK"; continue; }
   elif command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$REPO_RAW_ROOT/$IPK" -o "$SRC" || {
-      log "[WARN] Failed to download $IPK"
-      continue
-    }
+    curl -fsSL "$REPO_RAW_ROOT/$IPK" -o "$SRC" || { log "[WARN] Failed to download $IPK"; continue; }
   else
     log "[ERROR] Neither wget nor curl found."
     break
   fi
-  
+
   log "   Installing $IPK ..."
   if opkg install --force-reinstall "$SRC" >/dev/null 2>&1; then
     log "   [OK] Installed $IPK"
@@ -90,12 +83,7 @@ elif command -v curl >/dev/null 2>&1; then
 fi
 
 if [ -f /tmp/files.zip ]; then
-  if unzip -oq /tmp/files.zip -d "$TMP_DIR"; then
-    log "[OK] Extraction completed."
-  else
-    log "[ERROR] Failed to unzip files.zip"
-  fi
-  
+  unzip -oq /tmp/files.zip -d "$TMP_DIR" && log "[OK] Extraction completed."
   log ">>> Copying extracted files with comparison..."
   for dir in etc usr www_open; do
     if [ -d "$TMP_DIR/$dir" ]; then
@@ -103,109 +91,53 @@ if [ -f /tmp/files.zip ]; then
         rel_path="${src_file#$TMP_DIR/}"
         dest_file="/$rel_path"
         if [ -f "$dest_file" ]; then
-          cp -f "$src_file" "$dest_file" && log "[REPLACED] $rel_path" || log "[ERROR] Failed to replace $rel_path"
+          cp -f "$src_file" "$dest_file" && log "[REPLACED] $rel_path"
         else
           mkdir -p "$(dirname "$dest_file")"
-          cp "$src_file" "$dest_file" && log "[ADDED] $rel_path" || log "[ERROR] Failed to add $rel_path"
+          cp "$src_file" "$dest_file" && log "[ADDED] $rel_path"
         fi
       done
-    else
-      log "[WARN] Directory $dir not found in extracted content"
     fi
   done
 fi
 
 log ">>> Setting execute permissions..."
-[ -f /usr/bin/send_at.sh ] && chmod +x /usr/bin/send_at.sh && log "[OK] Executable: /usr/bin/send_at.sh"
-[ -f /usr/bin/update_apn.sh ] && chmod +x /usr/bin/update_apn.sh && log "[OK] Executable: /usr/bin/update_apn.sh"
-[ -f /usr/share/synctechmodem/get_modem_info.sh ] && chmod +x /usr/share/synctechmodem/get_modem_info.sh && log "[OK] Executable: get_modem_info.sh"
-[ -f /www_open/cgi-bin/status_open.sh ] && chmod +x /www_open/cgi-bin/status_open.sh && log "[OK] Executable: status_open.sh"
+[ -f /usr/bin/send_at.sh ] && chmod +x /usr/bin/send_at.sh
+[ -f /usr/bin/update_apn.sh ] && chmod +x /usr/bin/update_apn.sh
+[ -f /usr/share/synctechmodem/get_modem_info.sh ] && chmod +x /usr/share/synctechmodem/get_modem_info.sh
+[ -f /www_open/cgi-bin/status_open.sh ] && chmod +x /www_open/cgi-bin/status_open.sh
 
-if [ -x /etc/init.d/uhttpd ]; then
-  log ">>> Restarting uhttpd ..."
-  /etc/init.d/uhttpd restart >/dev/null 2>&1 && log "[OK] uhttpd restarted." || log "[WARN] Failed to restart uhttpd."
-fi
-
-log ">>> Configuring network interface 'wwan'..."
-
-if uci get network.wwan >/dev/null 2>&1; then
-    uci delete network.wwan
-    log "[OK] Removed existing WWAN interface."
-fi
-
-uci set network.wwan=interface
-uci set network.wwan.proto='dhcp'
-uci set network.wwan.device='usb0'
-uci set network.wwan.peerdns='0'
-uci add_list network.wwan.dns='8.8.8.8'
-uci add_list network.wwan.dns='1.1.1.1'
-uci commit network
-/etc/init.d/network restart
-log "[OK] WWAN interface configured and applied."
-
-log ">>> Updating firewall rules..."
-# پیدا کردن بخش lan و اعمال ACCEPT
-LAN_SEC=$(uci show firewall | grep "firewall.@zone" | grep "name='lan'" | cut -d. -f2 | cut -d= -f1)
-uci set firewall.${LAN_SEC}.input='ACCEPT'
-uci set firewall.${LAN_SEC}.output='ACCEPT'
-uci set firewall.${LAN_SEC}.forward='ACCEPT'
-log "[OK] LAN zone set to ACCEPT."
-# پیدا کردن بخش wan و افزودن wwan اگر وجود ندارد
-WAN_SEC=$(uci show firewall | grep "firewall.@zone" | grep "name='wan'" | cut -d. -f2 | cut -d= -f1)
-if ! uci get firewall.${WAN_SEC}.network 2>/dev/null | grep -qw 'wwan'; then
-    uci add_list firewall.${WAN_SEC}.network='wwan'
-    log "[OK] Added 'wwan' to WAN zone networks."
-else
-    log "[INFO] 'wwan' already exists in WAN zone."
-fi
-uci commit firewall
-/etc/init.d/firewall restart
-log "[OK] Firewall configuration applied."
-
-uci set system.@system[0].hostname=AGC-Global
-uci commit system
-/etc/init.d/system restart
-log "[OK] hostname configuration applied."
-
+# حذف wifi-iface با network=wwan2
 log ">>> Checking wireless configs for network 'wwan2'..."
-# پیدا کردن تمام ایندکس‌های wifi-iface
 for idx in $(uci show wireless | grep "=wifi-iface" | cut -d[ -f2 | cut -d] -f1); do
     iface_section="wireless.@wifi-iface[$idx]"
     net_name=$(uci get ${iface_section}.network 2>/dev/null || echo "")
-
-    if [ "$net_name" = "wwan2" ]; then
-        log "[OK] Removing $iface_section because network='wwan2'."
-        uci delete ${iface_section}
-    fi
+    # اگر چند مقدار داشت در لیست جستجو شود
+    for n in $net_name; do
+        if [ "$n" = "wwan2" ]; then
+            log "[OK] Removing $iface_section because network='wwan2'"
+            uci delete ${iface_section}
+        fi
+    done
 done
 uci commit wireless
-/etc/init.d/network restart
-log "[OK] Wireless configuration updated and applied."
 
+# حذف interface با نام wwan2
 log ">>> Checking network config for interface 'wwan2'..."
+if uci get network.wwan2 >/dev/null 2>&1; then
+    uci delete network.wwan2
+    log "[OK] Deleted 'network.wwan2' section."
+fi
 for idx in $(uci show network | grep "=interface" | cut -d[ -f2 | cut -d] -f1); do
-    iface_name=$(uci get network.@interface[$idx].type 2>/dev/null || echo "")
-    # بعضی وقتا type نیست، باید از option name استفاده کنیم
-    name_option=$(uci get network.@interface[$idx].type 2>/dev/null || echo "")
-    iface_real_name=$(uci get network.@interface[$idx].type 2>/dev/null || \
-                      uci get network.@interface[$idx].name 2>/dev/null || \
-                      echo "")
-    name=$(uci get network.@interface[$idx].type 2>/dev/null || \
-           uci get network.@interface[$idx].ifname 2>/dev/null || \
-           echo "")
-    # چک فقط بر اساس فیلد option name
-    iface_option=$(uci get network.@interface[$idx].ifname 2>/dev/null || echo "")
-    # ساده‌تر: مستقیم مقایسه option .name
-    if [ "$(uci get network.@interface[$idx]..name 2>/dev/null || echo "")" = "wwan2" ] \
-       || [ "$(uci get network.@interface[$idx].name 2>/dev/null || echo "")" = "wwan2" ]; then
+    name=$(uci get network.@interface[$idx].name 2>/dev/null || echo "")
+    if [ "$name" = "wwan2" ]; then
         log "[OK] Removing network.@interface[$idx] because name='wwan2'"
         uci delete network.@interface[$idx]
     fi
 done
 uci commit network
-/etc/init.d/network restart
-log "[OK] Network configuration updated and applied."
 
+/etc/init.d/network restart
 
 log ">>> Cleaning up downloaded files..."
 rm -f /tmp/*.ipk /tmp/files.zip
