@@ -124,6 +124,15 @@ log ">>> Setting execute permissions..."
 [ -f /usr/share/synctechmodem/get_modem_info.sh ] && chmod +x /usr/share/synctechmodem/get_modem_info.sh
 [ -f /www_open/cgi-bin/status_open.sh ] && chmod +x /www_open/cgi-bin/status_open.sh
 
+LAN_IP="192.168.1.5"
+if ! uci show network.lan | grep -q "list ipaddr='$LAN_IP'"; then
+    uci add_list network.lan.ipaddr="$LAN_IP"
+    uci commit network
+    /etc/init.d/network restart
+    echo "[OK] IP $LAN_IP Added to lan network."
+else
+    echo "[INFO] IP $LAN_IP has already been configured."
+fi
 
 log ">>> Configuring network interface 'wwan'..."
 if uci get network.wwan >/dev/null 2>&1; then
