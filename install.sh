@@ -205,6 +205,7 @@ fi
 
 log ">>> Cleaning up downloaded files..."
 rm -f /tmp/*.ipk /tmp/files.zip
+rm -rf /tmp/files_extracted
 log "[OK] Cleanup completed."
 
 log ">>> Installation and configuration completed."
