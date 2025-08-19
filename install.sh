@@ -23,7 +23,7 @@ log() {
 REPO_RAW_ROOT="https://raw.githubusercontent.com/synctech-project/LTE-Modem/main/package"
 FILES_ZIP_URL="https://raw.githubusercontent.com/synctech-project/LTE-Modem/main/files.zip"
 
-IPK_LIST="
+IPK_LIST=$(cat <<'EOF'
 0-kmod-nls-base_5.15.167-1_mipsel_24kc.ipk
 1-0-kmod-usb-core_5.15.167-1_mipsel_24kc.ipk
 1-1kmod-usb-ehci_5.15.167-1_mipsel_24kc.ipk
@@ -47,11 +47,12 @@ IPK_LIST="
 10-luci-lua-runtime_git-25.176.69269-6e21c0e_mipsel_24kc.ipk
 11-luci-compat_git-25.176.69269-6e21c0e_all.ipk
 unzip_6.0-8_mipsel_24kc.ipk
-"
+EOF
+)
 
 FAILED_PKGS=""
 log ">>> Downloading and installing packages..."
-for IPK in $IPK_LIST; do
+while IFS= read -r IPK; do  
   SRC="/tmp/$IPK"
   log "-> Downloading $IPK ..."
   if command -v wget >/dev/null 2>&1; then
@@ -70,7 +71,10 @@ for IPK in $IPK_LIST; do
     FAILED_PKGS="$FAILED_PKGS $IPK"
     continue
   fi
-done
+done <<EOF
+$IPK_LIST
+EOF
+
 # مرحله دوم: تلاش مجدد برای پکیج‌های خطا داده
 if [ -n "$FAILED_PKGS" ]; then
   log ">>> Retrying failed packages..."
