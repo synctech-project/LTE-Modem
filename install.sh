@@ -222,6 +222,6 @@ log "[OK] Cleanup completed."
 
 log "${GREEN}>>> Installation and configuration completed.${NC}"
 log "${YELLOW}>>> Full log saved to $LOG_FILE${NC}"
-log "${YELLOW}>>> Reboot system....${NC}"
-sleep 3
+log "${YELLOW}>>> Please Reboot system.${NC}"
+exit 0
 reboot
