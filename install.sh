@@ -1,13 +1,8 @@
 #!/bin/sh
 uci set system.@system[0].zonename='Asia/Tehran'
-
 uci set system.@system[0].timezone='<+0330>-3:30'
-
 uci commit system
 
-uci set system.@system[0].hostname=AGC-Global
-
-uci commit system
 echo "
  ____                  _____         _     
 / ___| _   _ _ __   __|_   _|__  ___| |__  
@@ -131,13 +126,13 @@ if [ -x /etc/init.d/uhttpd ]; then
   /etc/init.d/uhttpd restart >/dev/null 2>&1 && log "[OK] uhttpd restarted." || log "[WARN] Failed to restart uhttpd."
 fi
 
-log ">>> Configuring WWAN interface..."
-# اگر wwan وجود دارد حذفش کن
+log ">>> Configuring network interface 'wwan'..."
+
 if uci get network.wwan >/dev/null 2>&1; then
     uci delete network.wwan
     log "[OK] Removed existing WWAN interface."
 fi
-# ایجاد اینترفیس جدید wwan
+
 uci set network.wwan=interface
 uci set network.wwan.proto='dhcp'
 uci set network.wwan.device='usb0'
@@ -145,7 +140,30 @@ uci set network.wwan.peerdns='0'
 uci add_list network.wwan.dns='8.8.8.8'
 uci add_list network.wwan.dns='1.1.1.1'
 uci commit network
-log "[OK] WWAN interface configured."
+/etc/init.d/network restart
+log "[OK] WWAN interface configured and applied."
+
+log ">>> Updating firewall rules..."
+# اصلاح بخش lan
+LAN_INDEX=$(uci show firewall | grep "=zone" | grep -w "'lan'" | cut -d[ -f2 | cut -d] -f1)
+uci set firewall.@zone[$LAN_INDEX].input='ACCEPT'
+uci set firewall.@zone[$LAN_INDEX].output='ACCEPT'
+uci set firewall.@zone[$LAN_INDEX].forward='ACCEPT'
+log "[OK] LAN zone set to ACCEPT for all directions."
+# اصلاح بخش wan
+WAN_INDEX=$(uci show firewall | grep "=zone" | grep -w "'wan'" | cut -d[ -f2 | cut -d] -f1)
+if ! uci get firewall.@zone[$WAN_INDEX].network | grep -q '\bwwan\b'; then
+    uci add_list firewall.@zone[$WAN_INDEX].network='wwan'
+    log "[OK] Added 'wwan' to WAN zone networks."
+else
+    log "[INFO] 'wwan' already exists in WAN zone."
+fi
+uci commit firewall
+/etc/init.d/firewall restart
+log "[OK] Firewall configuration applied."
+
+uci set system.@system[0].hostname=AGC-Global
+uci commit system
 
 log ">>> Cleaning up downloaded files..."
 rm -f /tmp/*.ipk /tmp/files.zip
