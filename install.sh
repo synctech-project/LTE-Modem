@@ -144,16 +144,16 @@ uci commit network
 log "[OK] WWAN interface configured and applied."
 
 log ">>> Updating firewall rules..."
-# اصلاح بخش lan
-LAN_INDEX=$(uci show firewall | grep "=zone" | grep -w "'lan'" | cut -d[ -f2 | cut -d] -f1)
-uci set firewall.@zone[$LAN_INDEX].input='ACCEPT'
-uci set firewall.@zone[$LAN_INDEX].output='ACCEPT'
-uci set firewall.@zone[$LAN_INDEX].forward='ACCEPT'
-log "[OK] LAN zone set to ACCEPT for all directions."
-# اصلاح بخش wan
-WAN_INDEX=$(uci show firewall | grep "=zone" | grep -w "'wan'" | cut -d[ -f2 | cut -d] -f1)
-if ! uci get firewall.@zone[$WAN_INDEX].network | grep -q '\bwwan\b'; then
-    uci add_list firewall.@zone[$WAN_INDEX].network='wwan'
+# پیدا کردن بخش lan و اعمال ACCEPT
+LAN_SEC=$(uci show firewall | grep "firewall.@zone" | grep "name='lan'" | cut -d. -f2 | cut -d= -f1)
+uci set firewall.${LAN_SEC}.input='ACCEPT'
+uci set firewall.${LAN_SEC}.output='ACCEPT'
+uci set firewall.${LAN_SEC}.forward='ACCEPT'
+log "[OK] LAN zone set to ACCEPT."
+# پیدا کردن بخش wan و افزودن wwan اگر وجود ندارد
+WAN_SEC=$(uci show firewall | grep "firewall.@zone" | grep "name='wan'" | cut -d. -f2 | cut -d= -f1)
+if ! uci get firewall.${WAN_SEC}.network 2>/dev/null | grep -qw 'wwan'; then
+    uci add_list firewall.${WAN_SEC}.network='wwan'
     log "[OK] Added 'wwan' to WAN zone networks."
 else
     log "[INFO] 'wwan' already exists in WAN zone."
