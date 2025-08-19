@@ -1,4 +1,10 @@
 #!/bin/sh
+
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
 uci set system.@system[0].zonename='Asia/Tehran'
 uci set system.@system[0].timezone='<+0330>-3:30'
 uci set system.@system[0].hostname=AGC-Global
@@ -52,7 +58,7 @@ EOF
 )
 
 FAILED_PKGS=""
-log "\033[0;34m>>> Downloading and installing packages...\033[0m"
+log "${BLUE}>>> Downloading and installing packages...${NC}"
 while IFS= read -r IPK; do  
   SRC="/tmp/$IPK"
   log "-> Downloading $IPK ..."
@@ -93,7 +99,7 @@ if [ -n "$FAILED_PKGS" ]; then
   FAILED_PKGS="$RETRY_FAILED"
 fi
 
-log "\033[0;34m>>> Downloading and extracting files.zip...\033[0m"
+log ">>> Downloading and extracting files.zip..."
 TMP_DIR="/tmp/files_extracted"
 rm -rf "$TMP_DIR"
 mkdir -p "$TMP_DIR"
@@ -123,7 +129,7 @@ if [ -f /tmp/files.zip ]; then
   done
 fi
 
-log "\033[0;34m>>>> Setting execute permissions...\033[0m"
+log ">>>> Setting execute permissions..."
 [ -f /usr/bin/send_at.sh ] && chmod +x /usr/bin/send_at.sh
 [ -f /usr/bin/update_apn.sh ] && chmod +x /usr/bin/update_apn.sh
 [ -f /usr/share/synctechmodem/get_modem_info.sh ] && chmod +x /usr/share/synctechmodem/get_modem_info.sh
@@ -139,7 +145,7 @@ else
     echo "[INFO] IP $LAN_IP has already been configured."
 fi
 
-log "033[0;34m>>> Configuring network interface 'wwan'...\033[0m"
+log ">>> Configuring network interface 'wwan'..."
 if uci get network.wwan >/dev/null 2>&1; then
     uci delete network.wwan
     log "[OK] Removed existing WWAN interface."
@@ -154,7 +160,7 @@ uci commit network
 /etc/init.d/network restart
 log "[OK] WWAN interface configured and applied."
 
-log "033[0;34m>>> Updating firewall rules...\033[0m"
+log ">>> Updating firewall rules..."
 LAN_SEC=$(uci show firewall | grep "firewall.@zone" | grep "name='lan'" | cut -d. -f2 | cut -d= -f1)
 uci set firewall.${LAN_SEC}.input='ACCEPT'
 uci set firewall.${LAN_SEC}.output='ACCEPT'
@@ -178,7 +184,7 @@ if [ -n "$FAILED_PKGS" ]; then
 else
 log "[OK] All packages installed successfully. Proceeding with wwan2 / wifi-iface removal..."
 
-log "033[0;34m>>> Removing wifi-iface sections with network 'wwan2'...\033[0m"
+log ">>> Removing wifi-iface sections with network 'wwan2'..."
 for section in $(uci show wireless | grep "=wifi-iface" | cut -d. -f2 | cut -d= -f1); do
     net_vals=$(uci get wireless.${section}.network 2>/dev/null || echo "")
     for n in $net_vals; do
@@ -192,7 +198,7 @@ uci commit wireless
 /etc/init.d/network restart
 log "[OK] Wireless updated."
 
-log "033[0;34m>>> Checking network config for interface 'wwan2'...\033[0m"
+log ">>> Checking network config for interface 'wwan2'..."
 if uci get network.wwan2 >/dev/null 2>&1; then
     uci delete network.wwan2
     log "[OK] Deleted 'network.wwan2' section."
@@ -208,7 +214,7 @@ uci commit network
 /etc/init.d/network restart
 fi
 
-log "033[0;34m>>> Cleaning up downloaded files...\033[0m"
+log ">>> Cleaning up downloaded files..."
 rm -f /tmp/*.ipk /tmp/files.zip
 rm -rf /tmp/files_extracted
 log "[OK] Cleanup completed."
