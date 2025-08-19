@@ -3,7 +3,7 @@
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 uci set system.@system[0].zonename='Asia/Tehran'
 uci set system.@system[0].timezone='<+0330>-3:30'
@@ -26,7 +26,6 @@ LOG_FILE="/tmp/install_log.txt"
 log() {
   printf "%b\n" "$1" | tee -a "$LOG_FILE"
 }
-
 
 REPO_RAW_ROOT="https://raw.githubusercontent.com/synctech-project/LTE-Modem/main/package"
 FILES_ZIP_URL="https://raw.githubusercontent.com/synctech-project/LTE-Modem/main/files.zip"
@@ -62,11 +61,11 @@ FAILED_PKGS=""
 log "${YELLOW}>>> Downloading and installing packages...${NC}"
 while IFS= read -r IPK; do  
   SRC="/tmp/$IPK"
-  log "-> Downloading $IPK ..."
+  log "${YELLOW}->${NC}Downloading $IPK ..."
   if command -v wget >/dev/null 2>&1; then
-    wget -qO "$SRC" "$REPO_RAW_ROOT/$IPK" || { log "[WARN] Failed to download $IPK"; FAILED_PKGS="$FAILED_PKGS $IPK"; continue; }
+    wget -qO "$SRC" "$REPO_RAW_ROOT/$IPK" || { log "${RED}[WARN] Failed to download${NC} $IPK"; FAILED_PKGS="$FAILED_PKGS $IPK"; continue; }
   elif command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$REPO_RAW_ROOT/$IPK" -o "$SRC" || { log "[WARN] Failed to download $IPK"; FAILED_PKGS="$FAILED_PKGS $IPK"; continue; }
+    curl -fsSL "$REPO_RAW_ROOT/$IPK" -o "$SRC" || { log "${RED}[WARN] Failed to download${NC} $IPK"; FAILED_PKGS="$FAILED_PKGS $IPK"; continue; }
   else
     log "[ERROR] Neither wget nor curl found."
     break
@@ -75,7 +74,7 @@ while IFS= read -r IPK; do
   if opkg install --force-reinstall "$SRC" >/dev/null 2>&1; then
     log "${GREEN}[OK] Installed${NC} $IPK"
   else
-    log "${GREEN}[WARN] Failed to install${NC} $IPK"
+    log "${RED}[WARN] Failed to install${NC} $IPK"
     FAILED_PKGS="$FAILED_PKGS $IPK"
     continue
   fi
@@ -83,17 +82,16 @@ done <<EOF
 $IPK_LIST
 EOF
 
-# مرحله دوم: تلاش مجدد برای پکیج‌های خطا داده
 if [ -n "$FAILED_PKGS" ]; then
   log "${YELLOW}>>> Retrying failed packages...${NC}"
   RETRY_FAILED=""
   for IPK in $FAILED_PKGS; do
     SRC="/tmp/$IPK"
-    log "-> Retrying install $IPK ..."
+    log "${YELLOW}->${NC} Retrying install $IPK ..."
     if opkg install --force-reinstall "$SRC" >/dev/null 2>&1; then
-      log "   [OK] Installed on retry: $IPK"
+      log "   ${GREEN}[OK]${NC} Installed on retry: $IPK"
     else
-      log "   [FAIL] Still failed: $IPK"
+      log "   ${RED}[FAIL]${NC} Still failed: $IPK"
       RETRY_FAILED="$RETRY_FAILED $IPK"
     fi
   done
@@ -149,7 +147,7 @@ fi
 log "${YELLOW}>>> Configuring network interface 'wwan'...${NC}"
 if uci get network.wwan >/dev/null 2>&1; then
     uci delete network.wwan
-    log "[OK] Removed existing WWAN interface."
+    log "${GREEN}[OK] Removed existing WWAN interface.${NC}"
 fi
 uci set network.wwan=interface
 uci set network.wwan.proto='dhcp'
@@ -170,7 +168,7 @@ log "[OK] LAN zone set to ACCEPT."
 WAN_SEC=$(uci show firewall | grep "firewall.@zone" | grep "name='wan'" | cut -d. -f2 | cut -d= -f1)
 if ! uci get firewall.${WAN_SEC}.network 2>/dev/null | grep -qw 'wwan'; then
     uci add_list firewall.${WAN_SEC}.network='wwan'
-    log "[OK] Added 'wwan' to WAN zone networks."
+    log "${GREEN}[OK] Added 'wwan' to WAN zone networks.${NC}"
 else
     log "[INFO] 'wwan' already exists in WAN zone."
 fi
@@ -180,10 +178,10 @@ log "[OK] Firewall configuration applied."
 
 FAILED_PKGS="$(echo "$FAILED_PKGS" | xargs)"
 if [ -n "$FAILED_PKGS" ]; then
-  log "[ERROR] Some packages failed after retry: $(echo $FAILED_PKGS)"
-  log "[INFO] Skipping wwan2 / wifi-iface removal due to package install failure."
+  log "${RED}[ERROR] Some packages failed after retry: $(echo $FAILED_PKGS)${NC}"
+  log "${YELLOW}[INFO] Skipping wwan2 / wifi-iface removal due to package install failure.${NC}"
 else
-log "[OK] All packages installed successfully. Proceeding with wwan2 / wifi-iface removal..."
+log "${GREEN}[OK] All packages installed successfully. Proceeding with wwan2 / wifi-iface removal...${NC}"
 
 log "${YELLOW}>>> Removing wifi-iface sections with network 'wwan2'...${NC}"
 for section in $(uci show wireless | grep "=wifi-iface" | cut -d. -f2 | cut -d= -f1); do
@@ -197,17 +195,17 @@ for section in $(uci show wireless | grep "=wifi-iface" | cut -d. -f2 | cut -d= 
 done
 uci commit wireless
 /etc/init.d/network restart
-log "[OK] Wireless updated."
+log "${GREEN}[OK] Wireless updated.${NC}"
 
 log "${YELLOW}>>> Checking network config for interface 'wwan2'...${NC}"
 if uci get network.wwan2 >/dev/null 2>&1; then
     uci delete network.wwan2
-    log "[OK] Deleted 'network.wwan2' section."
+    log "${GREEN}[OK] Deleted 'network.wwan2' section.${NC}"
 fi
 for idx in $(uci show network | grep "=interface" | cut -d[ -f2 | cut -d] -f1); do
     name=$(uci get network.@interface[$idx].name 2>/dev/null || echo "")
     if [ "$name" = "wwan2" ]; then
-        log "[OK] Removing network.@interface[$idx] because name='wwan2'"
+        log "${GREEN}[OK] Removing network.@interface[$idx] because name='wwan2'${NC}"
         uci delete network.@interface[$idx]
     fi
 done
@@ -218,10 +216,10 @@ fi
 log "${YELLOW}>>> Cleaning up downloaded files...${NC}"
 rm -f /tmp/*.ipk /tmp/files.zip
 rm -rf /tmp/files_extracted
-log "[OK] Cleanup completed."
+/etc/init.d/system restart
+log "${GREEN}[OK] Cleanup completed.${NC}"
 
 log "${GREEN}>>> Installation and configuration completed.${NC}"
 log "${YELLOW}>>> Full log saved to $LOG_FILE${NC}"
 log "${YELLOW}>>> Please Reboot system.${NC}"
 exit 0
-reboot
