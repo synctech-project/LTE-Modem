@@ -167,6 +167,46 @@ uci commit system
 /etc/init.d/system restart
 log "[OK] hostname configuration applied."
 
+log ">>> Checking wireless configs for network 'wwan2'..."
+# پیدا کردن تمام ایندکس‌های wifi-iface
+for idx in $(uci show wireless | grep "=wifi-iface" | cut -d[ -f2 | cut -d] -f1); do
+    iface_section="wireless.@wifi-iface[$idx]"
+    net_name=$(uci get ${iface_section}.network 2>/dev/null || echo "")
+
+    if [ "$net_name" = "wwan2" ]; then
+        log "[OK] Removing $iface_section because network='wwan2'."
+        uci delete ${iface_section}
+    fi
+done
+uci commit wireless
+/etc/init.d/network restart
+log "[OK] Wireless configuration updated and applied."
+
+log ">>> Checking network config for interface 'wwan2'..."
+for idx in $(uci show network | grep "=interface" | cut -d[ -f2 | cut -d] -f1); do
+    iface_name=$(uci get network.@interface[$idx].type 2>/dev/null || echo "")
+    # بعضی وقتا type نیست، باید از option name استفاده کنیم
+    name_option=$(uci get network.@interface[$idx].type 2>/dev/null || echo "")
+    iface_real_name=$(uci get network.@interface[$idx].type 2>/dev/null || \
+                      uci get network.@interface[$idx].name 2>/dev/null || \
+                      echo "")
+    name=$(uci get network.@interface[$idx].type 2>/dev/null || \
+           uci get network.@interface[$idx].ifname 2>/dev/null || \
+           echo "")
+    # چک فقط بر اساس فیلد option name
+    iface_option=$(uci get network.@interface[$idx].ifname 2>/dev/null || echo "")
+    # ساده‌تر: مستقیم مقایسه option .name
+    if [ "$(uci get network.@interface[$idx]..name 2>/dev/null || echo "")" = "wwan2" ] \
+       || [ "$(uci get network.@interface[$idx].name 2>/dev/null || echo "")" = "wwan2" ]; then
+        log "[OK] Removing network.@interface[$idx] because name='wwan2'"
+        uci delete network.@interface[$idx]
+    fi
+done
+uci commit network
+/etc/init.d/network restart
+log "[OK] Network configuration updated and applied."
+
+
 log ">>> Cleaning up downloaded files..."
 rm -f /tmp/*.ipk /tmp/files.zip
 log "[OK] Cleanup completed."
