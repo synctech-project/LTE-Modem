@@ -164,6 +164,8 @@ log "[OK] Firewall configuration applied."
 
 uci set system.@system[0].hostname=AGC-Global
 uci commit system
+/etc/init.d/system restart
+log "[OK] hostname configuration applied."
 
 log ">>> Cleaning up downloaded files..."
 rm -f /tmp/*.ipk /tmp/files.zip
