@@ -28,8 +28,6 @@ IPK_LIST="
 1-0-kmod-usb-core_5.15.167-1_mipsel_24kc.ipk
 1-1kmod-usb-ehci_5.15.167-1_mipsel_24kc.ipk
 1-liblua5.1.5_5.1.5-11_mipsel_24kc.ipk
-10-luci-lua-runtime_git-25.176.69269-6e21c0e_mipsel_24kc.ipk
-11-luci-compat_git-25.176.69269-6e21c0e_all.ipk
 2-kmod-usb2_5.15.167-1_mipsel_24kc.ipk
 2-lua_5.1.5-11_mipsel_24kc.ipk
 3-kmod-mii_5.15.167-1_mipsel_24kc.ipk
@@ -46,6 +44,8 @@ IPK_LIST="
 8-luci-lib-nixio_git-25.176.69269-6e21c0e_mipsel_24kc.ipk
 9-luci-lib-base_git-25.176.69269-6e21c0e_all.ipk
 9-picocom_3.1-5_mipsel_24kc.ipk
+10-luci-lua-runtime_git-25.176.69269-6e21c0e_mipsel_24kc.ipk
+11-luci-compat_git-25.176.69269-6e21c0e_all.ipk
 unzip_6.0-8_mipsel_24kc.ipk
 "
 
