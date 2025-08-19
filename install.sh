@@ -215,4 +215,6 @@ log "[OK] Cleanup completed."
 
 log ">>> Installation and configuration completed."
 log ">>> Full log saved to $LOG_FILE"
-exit 0
+log ">>> Reboot system...."
+sleep 3
+reboot
