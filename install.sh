@@ -10,14 +10,14 @@ uci set system.@system[0].timezone='<+0330>-3:30'
 uci set system.@system[0].hostname=AGC-Global
 uci commit system
 
-echo "
+echo "${GREEN}
  ____                  _____         _     
 / ___| _   _ _ __   __|_   _|__  ___| |__  
 \___ \| | | | '_ \ / __|| |/ _ \/ __| '_ \ 
  ___) | |_| | | | | (__ | |  __/ (__| | | |
 |____/ \__, |_| |_|\___||_|\___|\___|_| |_|
        |___/                               
-" > /etc/banner
+${NC}" > /etc/banner
 set -eu
 
 LOG_FILE="/tmp/install_log.txt"
