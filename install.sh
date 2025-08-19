@@ -107,22 +107,19 @@ log ">>> Setting execute permissions..."
 [ -f /usr/share/synctechmodem/get_modem_info.sh ] && chmod +x /usr/share/synctechmodem/get_modem_info.sh
 [ -f /www_open/cgi-bin/status_open.sh ] && chmod +x /www_open/cgi-bin/status_open.sh
 
-# حذف wifi-iface با network=wwan2
-log ">>> Checking wireless configs for network 'wwan2'..."
-for idx in $(uci show wireless | grep "=wifi-iface" | cut -d[ -f2 | cut -d] -f1); do
-    iface_section="wireless.@wifi-iface[$idx]"
-    net_name=$(uci get ${iface_section}.network 2>/dev/null || echo "")
-    # اگر چند مقدار داشت در لیست جستجو شود
-    for n in $net_name; do
+log ">>> Removing any wifi-iface linked to 'wwan2'..."
+for section in $(uci show wireless | grep "=wifi-iface" | cut -d. -f2); do
+    net_vals=$(uci get wireless.${section}.network 2>/dev/null || echo "")
+    for n in $net_vals; do
         if [ "$n" = "wwan2" ]; then
-            log "[OK] Removing $iface_section because network='wwan2'"
-            uci delete ${iface_section}
+            log "[OK] Deleting wireless.${section} (network=$n)"
+            uci delete wireless.${section}
         fi
     done
 done
 uci commit wireless
 
-# حذف interface با نام wwan2
+
 log ">>> Checking network config for interface 'wwan2'..."
 if uci get network.wwan2 >/dev/null 2>&1; then
     uci delete network.wwan2
