@@ -1,6 +1,7 @@
 #!/bin/sh
 uci set system.@system[0].zonename='Asia/Tehran'
 uci set system.@system[0].timezone='<+0330>-3:30'
+uci set system.@system[0].hostname=AGC-Global
 uci commit system
 
 echo "
