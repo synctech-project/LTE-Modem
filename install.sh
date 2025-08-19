@@ -49,27 +49,44 @@ IPK_LIST="
 unzip_6.0-8_mipsel_24kc.ipk
 "
 
+FAILED_PKGS=""
 log ">>> Downloading and installing packages..."
 for IPK in $IPK_LIST; do
   SRC="/tmp/$IPK"
   log "-> Downloading $IPK ..."
   if command -v wget >/dev/null 2>&1; then
-    wget -qO "$SRC" "$REPO_RAW_ROOT/$IPK" || { log "[WARN] Failed to download $IPK"; continue; }
+    wget -qO "$SRC" "$REPO_RAW_ROOT/$IPK" || { log "[WARN] Failed to download $IPK"; FAILED_PKGS="$FAILED_PKGS $IPK"; continue; }
   elif command -v curl >/dev/null 2>&1; then
-    curl -fsSL "$REPO_RAW_ROOT/$IPK" -o "$SRC" || { log "[WARN] Failed to download $IPK"; continue; }
+    curl -fsSL "$REPO_RAW_ROOT/$IPK" -o "$SRC" || { log "[WARN] Failed to download $IPK"; FAILED_PKGS="$FAILED_PKGS $IPK"; continue; }
   else
     log "[ERROR] Neither wget nor curl found."
     break
   fi
-
   log "   Installing $IPK ..."
   if opkg install --force-reinstall "$SRC" >/dev/null 2>&1; then
     log "   [OK] Installed $IPK"
   else
     log "[WARN] Failed to install $IPK"
+    FAILED_PKGS="$FAILED_PKGS $IPK"
     continue
   fi
 done
+# مرحله دوم: تلاش مجدد برای پکیج‌های خطا داده
+if [ -n "$FAILED_PKGS" ]; then
+  log ">>> Retrying failed packages..."
+  RETRY_FAILED=""
+  for IPK in $FAILED_PKGS; do
+    SRC="/tmp/$IPK"
+    log "-> Retrying install $IPK ..."
+    if opkg install --force-reinstall "$SRC" >/dev/null 2>&1; then
+      log "   [OK] Installed on retry: $IPK"
+    else
+      log "   [FAIL] Still failed: $IPK"
+      RETRY_FAILED="$RETRY_FAILED $IPK"
+    fi
+  done
+  FAILED_PKGS="$RETRY_FAILED"
+fi
 
 log ">>> Downloading and extracting files.zip..."
 TMP_DIR="/tmp/files_extracted"
@@ -140,6 +157,12 @@ uci commit firewall
 /etc/init.d/firewall restart
 log "[OK] Firewall configuration applied."
 
+FAILED_PKGS="$(echo "$FAILED_PKGS" | xargs)"
+if [ -n "$FAILED_PKGS" ]; then
+  log "[ERROR] Some packages failed after retry: $(echo $FAILED_PKGS)"
+  log "[INFO] Skipping wwan2 / wifi-iface removal due to package install failure."
+else
+log "[OK] All packages installed successfully. Proceeding with wwan2 / wifi-iface removal..."
 
 log ">>> Removing wifi-iface sections with network 'wwan2'..."
 for section in $(uci show wireless | grep "=wifi-iface" | cut -d. -f2 | cut -d= -f1); do
@@ -155,8 +178,6 @@ uci commit wireless
 /etc/init.d/network restart
 log "[OK] Wireless updated."
 
-
-
 log ">>> Checking network config for interface 'wwan2'..."
 if uci get network.wwan2 >/dev/null 2>&1; then
     uci delete network.wwan2
@@ -170,8 +191,8 @@ for idx in $(uci show network | grep "=interface" | cut -d[ -f2 | cut -d] -f1); 
     fi
 done
 uci commit network
-
 /etc/init.d/network restart
+fi
 
 log ">>> Cleaning up downloaded files..."
 rm -f /tmp/*.ipk /tmp/files.zip
