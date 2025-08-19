@@ -139,9 +139,9 @@ if ! uci show network.lan | grep -q "list ipaddr='$LAN_IP'"; then
     uci add_list network.lan.ipaddr="$LAN_IP"
     uci commit network
     /etc/init.d/network restart
-    echo "${GREEN}[OK] IP $LAN_IP Added to lan network.${NC}"
+    echo "${GREEN}[OK] IP ${NC} $LAN_IP ${GREEN}Added to lan network.${NC}"
 else
-    echo "${YELLOW}[INFO] IP $LAN_IP has already been configured.${NC}"
+    echo "${YELLOW}[INFO] IP ${NC} $LAN_IP ${YELLOW}has already been configured.${NC}"
 fi
 
 log "${YELLOW}>>> Configuring network interface 'wwan'...${NC}"
