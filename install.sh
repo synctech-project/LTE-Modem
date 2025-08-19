@@ -107,17 +107,20 @@ log ">>> Setting execute permissions..."
 [ -f /usr/share/synctechmodem/get_modem_info.sh ] && chmod +x /usr/share/synctechmodem/get_modem_info.sh
 [ -f /www_open/cgi-bin/status_open.sh ] && chmod +x /www_open/cgi-bin/status_open.sh
 
-log ">>> Removing any wifi-iface linked to 'wwan2'..."
-for section in $(uci show wireless | grep "=wifi-iface" | cut -d. -f2); do
+log ">>> Removing wifi-iface sections with network 'wwan2'..."
+for section in $(uci show wireless | grep "=wifi-iface" | cut -d. -f2 | cut -d= -f1); do
     net_vals=$(uci get wireless.${section}.network 2>/dev/null || echo "")
     for n in $net_vals; do
         if [ "$n" = "wwan2" ]; then
-            log "[OK] Deleting wireless.${section} (network=$n)"
+            log "[OK] Deleting wireless.${section}"
             uci delete wireless.${section}
         fi
     done
 done
 uci commit wireless
+/etc/init.d/network restart
+log "[OK] Wireless updated."
+
 
 
 log ">>> Checking network config for interface 'wwan2'..."
