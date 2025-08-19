@@ -24,8 +24,9 @@ LOG_FILE="/tmp/install_log.txt"
 : > "$LOG_FILE"
 
 log() {
-  printf "%s\n" "$1" | tee -a "$LOG_FILE"
+  printf "%b\n" "$1" | tee -a "$LOG_FILE"
 }
+
 
 REPO_RAW_ROOT="https://raw.githubusercontent.com/synctech-project/LTE-Modem/main/package"
 FILES_ZIP_URL="https://raw.githubusercontent.com/synctech-project/LTE-Modem/main/files.zip"
