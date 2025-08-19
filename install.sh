@@ -130,6 +130,23 @@ if [ -x /etc/init.d/uhttpd ]; then
   log ">>> Restarting uhttpd ..."
   /etc/init.d/uhttpd restart >/dev/null 2>&1 && log "[OK] uhttpd restarted." || log "[WARN] Failed to restart uhttpd."
 fi
+
+log ">>> Configuring WWAN interface..."
+# اگر wwan وجود دارد حذفش کن
+if uci get network.wwan >/dev/null 2>&1; then
+    uci delete network.wwan
+    log "[OK] Removed existing WWAN interface."
+fi
+# ایجاد اینترفیس جدید wwan
+uci set network.wwan=interface
+uci set network.wwan.proto='dhcp'
+uci set network.wwan.device='usb0'
+uci set network.wwan.peerdns='0'
+uci add_list network.wwan.dns='8.8.8.8'
+uci add_list network.wwan.dns='1.1.1.1'
+uci commit network
+log "[OK] WWAN interface configured."
+
 log ">>> Cleaning up downloaded files..."
 rm -f /tmp/*.ipk /tmp/files.zip
 log "[OK] Cleanup completed."
