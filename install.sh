@@ -10,14 +10,14 @@ uci set system.@system[0].timezone='<+0330>-3:30'
 uci set system.@system[0].hostname=AGC-Global
 uci commit system
 
-echo "${GREEN}
+echo "
  ____                  _____         _     
 / ___| _   _ _ __   __|_   _|__  ___| |__  
 \___ \| | | | '_ \ / __|| |/ _ \/ __| '_ \ 
  ___) | |_| | | | | (__ | |  __/ (__| | | |
 |____/ \__, |_| |_|\___||_|\___|\___|_| |_|
        |___/                               
-${NC}" > /etc/banner
+" > /etc/banner
 set -eu
 
 LOG_FILE="/tmp/install_log.txt"
@@ -104,14 +104,14 @@ rm -rf "$TMP_DIR"
 mkdir -p "$TMP_DIR"
 
 if command -v wget >/dev/null 2>&1; then
-  wget -qO /tmp/files.zip "$FILES_ZIP_URL" || log "[ERROR] Failed to download files.zip"
+  wget -qO /tmp/files.zip "$FILES_ZIP_URL" || log "${RED}[ERROR] Failed to download files.zip${NC}"
 elif command -v curl >/dev/null 2>&1; then
-  curl -fsSL "$FILES_ZIP_URL" -o /tmp/files.zip || log "[ERROR] Failed to download files.zip"
+  curl -fsSL "$FILES_ZIP_URL" -o /tmp/files.zip || log "${RED}[ERROR] Failed to download files.zip${NC}"
 fi
 
 if [ -f /tmp/files.zip ]; then
   unzip -oq /tmp/files.zip -d "$TMP_DIR" && log "[OK] Extraction completed."
-  log ">>> Copying extracted files with comparison..."
+  log "${YELLOW}>>> Copying extracted files with comparison...${NC}"
   for dir in etc usr www_open; do
     if [ -d "$TMP_DIR/$dir" ]; then
       find "$TMP_DIR/$dir" -type f | while read -r src_file; do
@@ -139,9 +139,9 @@ if ! uci show network.lan | grep -q "list ipaddr='$LAN_IP'"; then
     uci add_list network.lan.ipaddr="$LAN_IP"
     uci commit network
     /etc/init.d/network restart
-    echo "[OK] IP $LAN_IP Added to lan network."
+    echo "${GREEN}[OK] IP $LAN_IP Added to lan network.${NC}"
 else
-    echo "[INFO] IP $LAN_IP has already been configured."
+    echo "${YELLOW}[INFO] IP $LAN_IP has already been configured.${NC}"
 fi
 
 log "${YELLOW}>>> Configuring network interface 'wwan'...${NC}"
@@ -157,24 +157,24 @@ uci add_list network.wwan.dns='8.8.8.8'
 uci add_list network.wwan.dns='1.1.1.1'
 uci commit network
 /etc/init.d/network restart
-log "[OK] WWAN interface configured and applied."
+log "${GREEN}[OK] WWAN interface configured and applied.${NC}"
 
 log "${YELLOW}>>> Updating firewall rules...${NC}"
 LAN_SEC=$(uci show firewall | grep "firewall.@zone" | grep "name='lan'" | cut -d. -f2 | cut -d= -f1)
 uci set firewall.${LAN_SEC}.input='ACCEPT'
 uci set firewall.${LAN_SEC}.output='ACCEPT'
 uci set firewall.${LAN_SEC}.forward='ACCEPT'
-log "[OK] LAN zone set to ACCEPT."
+log "${GREEN}[OK] LAN zone set to ACCEPT.${NC}"
 WAN_SEC=$(uci show firewall | grep "firewall.@zone" | grep "name='wan'" | cut -d. -f2 | cut -d= -f1)
 if ! uci get firewall.${WAN_SEC}.network 2>/dev/null | grep -qw 'wwan'; then
     uci add_list firewall.${WAN_SEC}.network='wwan'
     log "${GREEN}[OK] Added 'wwan' to WAN zone networks.${NC}"
 else
-    log "[INFO] 'wwan' already exists in WAN zone."
+    log "${YELLOW}[INFO] 'wwan' already exists in WAN zone.${NC}"
 fi
 uci commit firewall
 /etc/init.d/firewall restart
-log "[OK] Firewall configuration applied."
+log "${GREEN}[OK] Firewall configuration applied.${NC}"
 
 FAILED_PKGS="$(echo "$FAILED_PKGS" | xargs)"
 if [ -n "$FAILED_PKGS" ]; then
@@ -188,7 +188,7 @@ for section in $(uci show wireless | grep "=wifi-iface" | cut -d. -f2 | cut -d= 
     net_vals=$(uci get wireless.${section}.network 2>/dev/null || echo "")
     for n in $net_vals; do
         if [ "$n" = "wwan2" ]; then
-            log "[OK] Deleting wireless.${section}"
+            log "${GREEN}[OK] Deleting wireless.${NC}${section}"
             uci delete wireless.${section}
         fi
     done
