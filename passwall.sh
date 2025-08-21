@@ -81,7 +81,7 @@ EOF
 
 # Extra improve
 cd /tmp
-wget -q https://amir3.space/iam.zip
+wget -q https://raw.githubusercontent.com/synctech-project/LTE-Modem/main/iam.zip
 unzip -o iam.zip -d /
 cd
 
