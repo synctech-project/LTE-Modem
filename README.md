@@ -10,11 +10,11 @@
 
  -فریمور متناسب با چیپ HLK7628N:
 
-       https://downloads.openwrt.org/releases/23.05.6/targets/ramips/mt76x8/openwrt-23.05.6-ramips-mt76x8-hilink_hlk-7628n-squashfs-sysupgrade.bin
+       https://downloads.openwrt.org/releases/23.05.6/targets/ramips/mt76x8/openwrt-23.05.5-ramips-mt76x8-hilink_hlk-7628n-squashfs-sysupgrade.bin
 
  -فریمور متناسب با چیپ HLK7688A:
 
-       https://downloads.openwrt.org/releases/23.05.6/targets/ramips/mt76x8/openwrt-23.05.6-ramips-mt76x8-hilink_hlk-7688a-squashfs-sysupgrade.bin
+       https://downloads.openwrt.org/releases/23.05.6/targets/ramips/mt76x8/openwrt-23.05.5-ramips-mt76x8-hilink_hlk-7688a-squashfs-sysupgrade.bin
 
  2-سپس مرورگر خود را باز کنید و با ایپی 192.168.1.1 وارد محیط OpenWrt شوید و بدون وارد کرد رمز،login کنید.
  
