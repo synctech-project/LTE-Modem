@@ -8,10 +8,19 @@ NC='\033[0m' # No Color
 
 clear
 echo -e "${YELLOW}============================================${NC}"
-echo -e "${GREEN}      Welcome to SyncTech Setup Menu        ${NC}"
+echo -e "${YELLOW}
+ ____                  _____         _     
+/ ___| _   _ _ __   __|_   _|__  ___| |__  
+\___ \| | | | '_ \ / __|| |/ _ \/ __| '_ \ 
+ ___) | |_| | | | | (__ | |  __/ (__| | | |
+|____/ \__, |_| |_|\___||_|\___|\___|_| |_|
+       |___/                               
+${NC}"
+echo -e "${YELLOW}============================================${NC}"
+echo -e "${YELLOW}      Welcome to SyncTech Setup Menu        ${NC}"
 echo -e "${YELLOW}============================================${NC}"
 echo
-echo "Please select an option:"
+echo ">>>Please select an option:"
 echo "1) Basic Configuration"
 echo "2) Install VPN"
 echo
