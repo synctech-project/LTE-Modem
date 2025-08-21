@@ -39,4 +39,7 @@
 سپس دستور زیر را کپی کنید و در محیط PUTTY با زدن کلیک راست،ان را paste کنید و سپس enter بزنید و منتظر بمانید دستورات به ترتیب اجرا شوند پیغام Complated را به شما نمایش دهد.
 
 ```<pre>
-sh -c "$(wget -O- https://raw.githubusercontent.com/synctech-project/LTE-Modem/main/install.sh)" 
+sh -c "$(wget -O- https://raw.githubusercontent.com/synctech-project/LTE-Modem/main/install.sh)"
+
+https://raw.githubusercontent.com/synctech-project/LTE-Modem/main/passwall-packages
+
