@@ -105,12 +105,14 @@ sleep 2
 
 >/etc/banner
 
-echo "    ___    __  ___________  __  ______  __________ ___________   __
-   /   |  /  |/  /  _/ __ \/ / / / __ \/ ___/ ___// ____/  _/ | / /
-  / /| | / /|_/ // // /_/ / /_/ / / / /\__ \\__ \ / __/  / //  |/ /
- / ___ |/ /  / // // _  _/ __  / /_/ /___/ /__/ / /____/ // /|  /
-/_/  |_/_/  /_/___/_/ |_/_/ /_/\____//____/____/_____/___/_/ |_/                                                                                                
-telegram : @AmirHosseinTSL" >> /etc/banner
+echo "
+ ____                  _____         _     
+/ ___| _   _ _ __   __|_   _|__  ___| |__  
+\___ \| | | | '_ \ / __|| |/ _ \/ __| '_ \ 
+ ___) | |_| | | | | (__ | |  __/ (__| | | |
+|____/ \__, |_| |_|\___||_|\___|\___|_| |_|
+       |___/                               
+>> /etc/banner
 
 sleep 1
 
@@ -233,7 +235,7 @@ uci set system.@system[0].timezone='<+0330>-3:30'
 
 uci commit system
 
-uci set system.@system[0].hostname=By-AmirHossein
+uci set system.@system[0].hostname=AGC-Global
 
 uci commit system
 
@@ -260,7 +262,7 @@ my.irancell.ir'
 uci commit
 
 echo -e "${YELLOW}** Installation Completed ** ${ENDCOLOR}"
-echo -e "${MAGENTA} Made With Love By : AmirHossein ${ENDCOLOR}"
+echo -e "${MAGENTA} Made With Love By : SyncTech ${ENDCOLOR}"
 
 
 rm passwallx.sh 2> /dev/null
